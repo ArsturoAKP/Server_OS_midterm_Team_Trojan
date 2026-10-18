@@ -132,3 +132,67 @@ Order of discovery: each fix exposed the next fault. The score went from
 - **Found/proved by:** Aung Kyaw Phyo
 
 ---
+
+## Fault 2: Forward zone points to a file that does not exist
+
+- **Symptom (what we observed):**
+  With the firewall fixed, the server replies, but with an error for its own
+  domain, while the reverse zone works (output above):
+  ```
+  # ip netns exec client dig @192.168.19.10 www.novapeak.lab
+  ;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 20885
+  ;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+  ;; SERVER: 192.168.19.10#53(192.168.19.10) (UDP)
+  ```
+  The same SERVFAIL was already visible over TCP before the firewall fix
+  (`dig ... ns1.novapeak.lab +tcp` → `status: SERVFAIL, id: 35582`). The
+  checker reported `C4 named-checkconf -z FAILED`.
+- **Hypothesis (what we suspected and why):**
+  The reverse zone answers authoritatively (`aa`), so named itself works. The
+  forward zone gives SERVFAIL with no `aa` flag and no answer, which means
+  named is configured for `novapeak.lab` but the zone did not load.
+- **Proof (the command that confirmed the cause):**
+  ```
+  # named-checkconf -z
+  zone novapeak.lab/IN: loading from master file /etc/bind/db.MISSING failed: file not found
+  zone novapeak.lab/IN: not loaded due to errors.
+  _default/novapeak.lab/IN: file not found
+  zone 19.168.192.in-addr.arpa/IN: loaded serial 2024010101
+
+  # grep -A3 'zone "novapeak.lab"' /etc/bind/named.conf.local
+  zone "novapeak.lab" {
+  	type master;
+  	file "/etc/bind/db.MISSING";
+  };
+
+  # ls -l /etc/bind/db.MISSING
+  ls: cannot access '/etc/bind/db.MISSING': No such file or directory
+  # ls -l /etc/bind/db.novapeak.lab
+  -rw-r--r-- 1 bind bind 212 Oct 17 07:06 /etc/bind/db.novapeak.lab
+
+  # journalctl -u named --no-pager | grep -i missing | tail -5
+  Oct 17 07:06:25 ubuntu named[2452]: zone novapeak.lab/IN: loading from master file /etc/bind/db.MISSING failed: file not found
+  ```
+  The correct zone file exists, but the config points to `db.MISSING`, which
+  doesn't.
+- **Fix (what we changed):**
+  Backed up `named.conf.local`, then changed `file "/etc/bind/db.MISSING";` to
+  `file "/etc/bind/db.novapeak.lab";` (nano). Ran `named-checkconf -z`, then
+  `systemctl restart named`.
+- **Confirmation (output showing it now works):**
+  ```
+  # named-checkconf -z
+  zone novapeak.lab/IN: loaded serial 2024010101
+  zone 19.168.192.in-addr.arpa/IN: loaded serial 2024010101
+
+  # ip netns exec client dig @192.168.19.10 novapeak.lab SOA
+  ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 22316
+  ;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+  novapeak.lab.		3600	IN	SOA	ns1.novapeak.lab. admin.novapeak.lab. 2024010101 3600 1800 604800 3600
+
+  # ip netns exec client dig @192.168.19.10 www.novapeak.lab +short
+  192.168.19.20
+  ```
+- **Found/proved by:** L Peter San Awng
+
+---
