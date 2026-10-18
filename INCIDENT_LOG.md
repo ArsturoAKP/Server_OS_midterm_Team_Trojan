@@ -196,3 +196,58 @@ Order of discovery: each fix exposed the next fault. The score went from
 - **Found/proved by:** L Peter San Awng
 
 ---
+
+## Fault 3: `api.novapeak.lab` points to the gateway (192.168.19.1) instead of 192.168.19.40
+
+- **Symptom (what we observed):**
+  Once the zone loaded, we checked all four hosts from the client:
+  ```
+  # for h in ns1 www mail api; do echo -n "$h: "; ip netns exec client dig @192.168.19.10 $h.novapeak.lab +short; done
+  ns1: 192.168.19.10
+  www: 192.168.19.20
+  mail: 192.168.19.30
+  api: 192.168.19.1
+  ```
+- **Hypothesis (what we suspected and why):**
+  `named-checkzone` reported OK, so the record's syntax is valid but its value
+  can still be wrong. 192.168.19.1 is the network's gateway (the client's
+  `default via 192.168.19.1`), not a service host. We suspected a wrong value.
+- **Proof (the command that confirmed the cause):**
+  ```
+  # python3 /root/grading/params.py lab01 | grep api
+      api.novapeak.lab        -> 192.168.19.40
+
+  # grep api /etc/bind/db.novapeak.lab
+  api IN A 192.168.19.1
+
+  # grep '^40' /etc/bind/db.novapeak.lab.rev
+  40 IN PTR api.novapeak.lab.
+
+  # ip netns exec client dig @192.168.19.10 -x 192.168.19.1 +short
+  (no answer)
+  ```
+  The scenario card and the reverse zone both say api is .40, and .1 has no
+  PTR. The forward record is wrong. `named-checkzone` cannot catch this kind
+  of data error.
+- **Fix (what we changed):**
+  Backed up the zone file, then in `/etc/bind/db.novapeak.lab` changed
+  `api IN A 192.168.19.1` to `api IN A 192.168.19.40` and increased the SOA
+  serial from 2024010101 to 2024010102. Kept the file owned by `bind:bind`,
+  then restarted named.
+- **Confirmation (output showing it now works):**
+  ```
+  # named-checkzone novapeak.lab /etc/bind/db.novapeak.lab
+  zone novapeak.lab/IN: loaded serial 2024010102
+  OK
+
+  # for h in ns1 www mail api; do echo -n "$h: "; ip netns exec client dig @192.168.19.10 $h.novapeak.lab +short; done
+  ns1: 192.168.19.10
+  www: 192.168.19.20
+  mail: 192.168.19.30
+  api: 192.168.19.40
+  ```
+  The checker then scored **19 / 25**: C1, C2, C3 and C4 now pass, and only
+  C9/C11 still fail.
+- **Found/proved by:** Aung Kyaw Phyo
+
+---
