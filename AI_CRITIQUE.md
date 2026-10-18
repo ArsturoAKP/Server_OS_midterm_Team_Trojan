@@ -116,3 +116,75 @@ SERVER: 192.168.19.10#53 (TCP)
 ```
 
 **Finding:** UDP DNS requests timed out while the TCP reverse lookup succeeded. This indicated that the DNS service was responding over TCP and made UDP/53 filtering a strong possibility.
+
+
+### 5. Enumerate Firewall Rules and Prove Fault 1
+
+**Commands used:**
+
+```bash
+iptables -S
+
+iptables -L INPUT -n -v --line-numbers
+
+iptables -Z INPUT
+
+ip netns exec client dig @192.168.19.10 www.novapeak.lab +tries=1 +time=2
+
+iptables -L INPUT -n -v --line-numbers
+```
+
+**Evidence collected:**
+
+```text
+-A INPUT -p udp -m udp --dport 53 -j DROP
+```
+
+After resetting the firewall counters and sending one DNS query, the matching rule showed:
+
+```text
+num  pkts  bytes  target  prot  opt  in  out  source       destination
+1    1     85     DROP    17    --   *   *    0.0.0.0/0   0.0.0.0/0  udp dpt:53
+```
+
+**Finding:** The DROP rule's packet counter increased to one after the test query. This directly supported the conclusion that the firewall was dropping DNS traffic over UDP.
+
+**Conclusion:** Fault 1 was an inbound firewall rule dropping UDP port 53.
+
+### 6. Enumerate BIND Configuration and Prove Fault 2
+
+**Commands used:**
+
+```bash
+named-checkconf -p
+
+named-checkconf -z
+
+grep -A3 'zone "novapeak.lab"' /etc/bind/named.conf.local
+
+ls -l /etc/bind/db.MISSING
+
+ls -l /etc/bind/db.novapeak.lab
+
+journalctl -u named --no-pager | grep -i missing | tail -5
+```
+
+**Evidence collected:**
+
+```text
+zone novapeak.lab/IN: loading from master file /etc/bind/db.MISSING failed: file not found
+zone novapeak.lab/IN: not loaded due to errors.
+```
+
+The configuration contained:
+
+```text
+zone "novapeak.lab" {
+    type master;
+    file "/etc/bind/db.MISSING";
+};
+```
+
+The intended file, `/etc/bind/db.novapeak.lab`, existed, but `/etc/bind/db.MISSING` did not.
+
+**Finding:** The forward DNS zone referenced a nonexistent file. After the firewall fault was resolved, the forward lookup returned `SERVFAIL`, exposing the second fault.
