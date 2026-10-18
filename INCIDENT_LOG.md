@@ -251,3 +251,64 @@ Order of discovery: each fix exposed the next fault. The score went from
 - **Found/proved by:** Aung Kyaw Phyo
 
 ---
+
+## Fault 4: DHCP gives clients a public DNS server (8.8.8.8)
+
+- **Symptom (what we observed):**
+  DNS now works when queried directly, but a new client is still told to use
+  8.8.8.8:
+  ```
+  # ip netns exec client dhcpcd -U cli0 | grep -E 'ip_address|routers|domain_name'
+  ip_address=192.168.19.104
+  routers=192.168.19.1
+  domain_name_servers=8.8.8.8
+  domain_name=novapeak.lab
+
+  # python3 /root/grading/check_lab.py --group lab01 --phase build
+    [   0/3 ] C9   DHCP advertises 8.8.8.8, expected the company DNS 192.168.19.10 -- this is the integration the whole project is about
+    [   0/3 ] C11  using the leased resolver 8.8.8.8, www did not resolve to 192.168.19.20 (got nothing). If the leased resolver is a public one, that is the integration bug.
+    TOTAL: 19.0 / 25
+  ```
+- **Hypothesis (what we suspected and why):**
+  The lease itself is fine (C6, C7, C8, C10 pass). A machine joining the
+  network only knows the DNS server that DHCP gives it. 8.8.8.8 is a public
+  resolver and has never heard of the private `novapeak.lab` zone, so a new
+  client still cannot resolve company names.
+- **Proof (the command that confirmed the cause):**
+  ```
+  # ip netns exec client dig @8.8.8.8 www.novapeak.lab +tries=1 +time=2
+  ;; communications error to 8.8.8.8#53: timed out
+  ;; no servers could be reached
+
+  # grep -n domain-name-servers /etc/dhcp/dhcpd.conf
+  8:	option domain-name-servers 8.8.8.8;
+  ```
+  The resolver the client was given cannot answer for the company's names,
+  and the DHCP config is what hands it out.
+- **Fix (what we changed):**
+  Backed up `dhcpd.conf`, then changed `option domain-name-servers 8.8.8.8;`
+  to `option domain-name-servers 192.168.19.10;`. Ran `dhcpd -t` (clean) and
+  `systemctl restart isc-dhcp-server`. The client keeps its old lease until it
+  renews, so we released and renewed it with `dhcpcd -k cli0` and
+  `dhcpcd -b cli0`.
+- **Confirmation (output showing it now works):**
+  ```
+  # ip netns exec client dhcpcd -U cli0 | grep -E 'ip_address|routers|domain_name'
+  ip_address=192.168.19.104
+  routers=192.168.19.1
+  domain_name_servers=192.168.19.10
+  domain_name=novapeak.lab
+
+  # journalctl -u isc-dhcp-server -n 5 --no-pager
+  Oct 17 07:29:23 ubuntu dhcpd[3449]: DHCPRELEASE of 192.168.19.104 from 06:05:1c:96:89:7d via lan0 (found)
+  Oct 17 07:29:34 ubuntu dhcpd[3449]: DHCPDISCOVER from 06:05:1c:96:89:7d via lan0
+  Oct 17 07:29:35 ubuntu dhcpd[3449]: DHCPOFFER on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+  Oct 17 07:29:35 ubuntu dhcpd[3449]: DHCPREQUEST for 192.168.19.104 (192.168.19.10) from 06:05:1c:96:89:7d via lan0
+  Oct 17 07:29:35 ubuntu dhcpd[3449]: DHCPACK on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+
+  # ip netns exec client dig @192.168.19.10 www.novapeak.lab +short
+  192.168.19.20
+  ```
+- **Found/proved by:** L Peter San Awng
+
+---
