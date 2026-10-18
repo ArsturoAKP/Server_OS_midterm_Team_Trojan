@@ -59,3 +59,76 @@ Order of discovery: each fix exposed the next fault. The score went from
 11 → 19 → 25 / 25.
 
 ---
+
+## Fault 1: Firewall drops DNS queries (UDP port 53)
+
+- **Symptom (what we observed):**
+  ```
+  # ip netns exec client ping -c 3 192.168.19.10
+  3 packets transmitted, 3 received, 0% packet loss, time 2060ms
+
+  # ip netns exec client dig @192.168.19.10 ns1.novapeak.lab +tries=1 +time=2
+  ;; communications error to 192.168.19.10#53: timed out
+  ;; no servers could be reached
+  ```
+- **Hypothesis (what we suspected and why):**
+  Ping works, so the client reaches the server at layer 3. DNS gets a
+  **timeout**, not REFUSED or SERVFAIL, which means no reply came back at all.
+  The checker's C1 points at listen-on, allow-query or a firewall.
+  `named-checkconf -p` shows `listen-on { any; }` and `allow-query { any; }`,
+  and `ss` shows named on `192.168.19.10:53` (UDP and TCP). That ruled out the
+  first two and left a firewall. If only UDP is blocked, TCP should get through.
+- **Proof (the command that confirmed the cause):**
+  ```
+  # ss -ulntp | grep ':53'
+  udp   UNCONN 0  0   192.168.19.10:53   0.0.0.0:*   users:(("named",pid=2452,fd=25))
+  tcp   LISTEN 0  10  192.168.19.10:53   0.0.0.0:*   users:(("named",pid=2452,fd=26))
+
+  # ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tries=1 +time=2
+  ;; communications error to 192.168.19.10#53: timed out
+  ;; no servers could be reached
+
+  # ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tcp
+  ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 16833
+  ;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+  ;; ANSWER SECTION:
+  10.19.168.192.in-addr.arpa. 3600 IN	PTR	ns1.novapeak.lab.
+  ;; SERVER: 192.168.19.10#53(192.168.19.10) (TCP)
+
+  # iptables -S
+  -A INPUT -p udp -m udp --dport 53 -j DROP
+  ```
+  The same query times out over UDP but succeeds over TCP, so named works and
+  only UDP/53 is blocked. To prove this exact rule drops the client's
+  packets, we reset the counters and sent one query:
+  ```
+  # iptables -Z INPUT
+  # ip netns exec client dig @192.168.19.10 www.novapeak.lab +tries=1 +time=2
+  ;; communications error to 192.168.19.10#53: timed out
+  # iptables -L INPUT -n -v --line-numbers
+  num   pkts bytes target     prot opt in     out     source               destination
+  1        1    85 DROP       17   --  *      *       0.0.0.0/0            0.0.0.0/0            udp dpt:53
+  ```
+  The counter went from 0 to exactly 1 packet: our one query. No
+  configuration file contains this rule; only the running firewall shows it.
+  We also checked it is not saved for boot: `/etc/iptables/` does not exist,
+  and `/etc/nftables.conf` contains no DROP rule.
+- **Fix (what we changed):**
+  `iptables -D INPUT -p udp --dport 53 -j DROP`. This is a runtime change, and
+  rebuilding the lab adds the rule back.
+- **Confirmation (output showing it now works):**
+  ```
+  # iptables -S INPUT
+  -P INPUT ACCEPT
+
+  # ip netns exec client dig @192.168.19.10 -x 192.168.19.10
+  ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 15675
+  ;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+  10.19.168.192.in-addr.arpa. 3600 IN	PTR	ns1.novapeak.lab.
+  ;; SERVER: 192.168.19.10#53(192.168.19.10) (UDP)
+  ```
+  UDP queries now get answers. The forward lookup now returns SERVFAIL
+  instead of timing out, which exposed Fault 2.
+- **Found/proved by:** Aung Kyaw Phyo
+
+---
