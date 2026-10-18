@@ -286,8 +286,11 @@ Order of discovery: each fix exposed the next fault. The score went from
   # grep -n domain-name-servers /etc/dhcp/dhcpd.conf
   8:	option domain-name-servers 8.8.8.8;
   ```
-  The resolver the client was given cannot answer for the company's names,
-  and the DHCP config is what hands it out.
+  This timeout shows that 8.8.8.8 cannot even be reached from the lab
+  network, which has no internet route. Either way, the client cannot
+  resolve company names with the resolver DHCP gives it. The direct proof
+  is the lease (`domain_name_servers=8.8.8.8`) and line 8 of `dhcpd.conf`,
+  which is what hands that resolver out.
 - **Fix (what we changed):**
   Backed up `dhcpd.conf`, then changed `option domain-name-servers 8.8.8.8;`
   to `option domain-name-servers 192.168.19.10;`. Ran `dhcpd -t` (clean) and
