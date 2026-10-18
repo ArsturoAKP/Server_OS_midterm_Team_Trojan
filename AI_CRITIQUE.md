@@ -520,3 +520,13 @@ This case taught us that an AI-generated suggestion may be technically possible 
 **Important note:** This is a realistic example based on our investigation, not proof that ChatGPT actually gave us this suggestion. We should identify it as an actual AI mistake only if our conversation history confirms that ChatGPT made this recommendation. Otherwise, we should label it as a hypothetical example or replace it with a genuine suggestion from our AI testing.
 
 ---
+
+## Part 3d: Verdict
+
+### 1. Where Our Human Diagnosis Was Stronger
+
+Our main advantage was being able to inspect the live lab environment and collect direct evidence. We checked the server and client separately, compared UDP and TCP behavior, inspected BIND configuration and logs, examined the DHCP lease, and ran the grading checker.
+
+We also followed the faults in stages. Initially, DNS queries timed out. After removing the UDP firewall rule, the forward-zone error became visible. After correcting the zone-file path, we could identify the incorrect API address. Finally, correcting the DHCP DNS-server option allowed the client to use the required internal DNS server.
+
+This process helped us distinguish a possible explanation from a fault confirmed by evidence.
