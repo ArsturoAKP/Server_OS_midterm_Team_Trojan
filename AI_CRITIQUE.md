@@ -277,3 +277,30 @@ C11: using the leased resolver 8.8.8.8, www did not resolve to 192.168.19.20
 ```
 
 **Finding:** DHCP was advertising a public DNS resolver instead of the company's internal DNS server. Consequently, clients were not automatically configured to use the DNS service required by the lab.
+
+### 9. Summary of Initial Enumeration
+
+| Area investigated | Evidence | Finding |
+|---|---|---|
+| Network connectivity | Client ping succeeded with 0% packet loss | Network path to the server was working |
+| DNS transport | UDP timed out while TCP reverse lookup succeeded | UDP/53 firewall filtering suspected |
+| Firewall | UDP/53 DROP rule; counter increased after a query | Fault 1 |
+| BIND zone configuration | `named-checkconf -z` reported `db.MISSING` not found | Fault 2 |
+| DNS records | `api` resolved to `.1`, but expected `.40` | Fault 3 |
+| DHCP configuration | Client lease advertised `8.8.8.8` | Fault 4 |
+
+### 10. Verification After Fixing the Faults
+
+We retested the system after applying the repairs instead of assuming that editing the configuration files was sufficient.
+
+| Stage | Checker result | Interpretation |
+|---|---:|---|
+| Initial baseline | 11/25 | Multiple faults remained |
+| After the first three faults were addressed | 19/25 | DNS reachability and records improved, but DHCP integration still failed |
+| Final verification | 25/25 | All checker requirements passed |
+
+The final result was recorded in `checker_result.txt`.
+
+Our investigation identified four separate faults. The sequence of results was **timeout → SERVFAIL → incorrect API address → incorrect DHCP resolver**. Fixing each fault revealed or resolved the next issue, and the final checker result confirmed that the lab requirements were met.
+
+---
