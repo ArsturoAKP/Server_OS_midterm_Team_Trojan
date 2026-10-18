@@ -538,3 +538,22 @@ AI was useful for explaining unfamiliar commands and technical concepts, organiz
 Commands such as `named-checkconf -z`, `named-checkzone`, `dig +tcp`, `iptables -L INPUT -n -v`, and `dhcpcd -U cli0` helped us investigate the BIND, firewall, and DHCP components systematically.
 
 However, a command explanation or proposed fix was not enough by itself. We accepted a diagnosis only when it matched our observations and could be verified in the lab.
+
+### 3. What We Learned About Trusting AI
+
+AI can explain common Linux networking problems and suggest useful commands, but it cannot automatically know the current state of a live server unless relevant configuration, logs, and command output are provided.
+
+A DNS timeout can have several possible causes. Changing BIND configuration immediately could waste time or introduce another problem if the actual cause is a firewall rule. Similarly, a syntactically valid DNS zone can still contain an incorrect IP address, and a running DHCP service can still advertise the wrong DNS server.
+
+We learned to treat AI suggestions as hypotheses rather than facts. Our troubleshooting process was to:
+
+1. Observe the symptom.
+2. Form a hypothesis.
+3. Collect evidence using appropriate commands.
+4. Make one targeted change at a time.
+5. Retest from the client.
+6. Run the grading checker to confirm the result.
+
+Our final result was **25/25**. This experience showed us that reliable troubleshooting depends on technical understanding, evidence, and verification—not simply accepting an AI-generated answer.
+
+---
