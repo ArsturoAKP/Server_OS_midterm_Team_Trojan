@@ -188,3 +188,92 @@ zone "novapeak.lab" {
 The intended file, `/etc/bind/db.novapeak.lab`, existed, but `/etc/bind/db.MISSING` did not.
 
 **Finding:** The forward DNS zone referenced a nonexistent file. After the firewall fault was resolved, the forward lookup returned `SERVFAIL`, exposing the second fault.
+
+### 7. Enumerate DNS Records and Prove Fault 3
+
+**Commands used:**
+
+```bash
+python3 /root/grading/params.py lab01 | grep api
+
+grep api /etc/bind/db.novapeak.lab
+
+grep '^40' /etc/bind/db.novapeak.lab.rev
+
+for h in ns1 www mail api; do
+    echo -n "$h: "
+    ip netns exec client dig @192.168.19.10 "$h.novapeak.lab" +short
+done
+```
+
+**Evidence collected:**
+
+The scenario parameters specified:
+
+```text
+api.novapeak.lab -> 192.168.19.40
+```
+
+However, the forward zone contained:
+
+```text
+api IN A 192.168.19.1
+```
+
+The reverse zone contained:
+
+```text
+40 IN PTR api.novapeak.lab.
+```
+
+The client lookup results included:
+
+```text
+ns1: 192.168.19.10
+www: 192.168.19.20
+mail: 192.168.19.30
+api: 192.168.19.1
+```
+
+**Finding:** The `api` record pointed to the gateway address, `192.168.19.1`, instead of the expected `192.168.19.40`. The scenario parameters and reverse-zone record supported the expected address.
+
+### 8. Enumerate DHCP Settings and Prove Fault 4
+
+**Commands used:**
+
+```bash
+ip netns exec client dhcpcd -U cli0 \
+    | grep -E 'ip_address|routers|domain_name'
+
+grep -n domain-name-servers /etc/dhcp/dhcpd.conf
+
+dhcpd -t -cf /etc/dhcp/dhcpd.conf
+
+python3 /root/grading/check_lab.py --group lab01 --phase build
+```
+
+**Evidence collected:**
+
+The client lease contained:
+
+```text
+ip_address=192.168.19.104
+routers=192.168.19.1
+domain_name_servers=8.8.8.8
+domain_name=novapeak.lab
+```
+
+The DHCP configuration contained:
+
+```text
+option domain-name-servers 8.8.8.8;
+```
+
+The checker reported:
+
+```text
+C9: DHCP advertises 8.8.8.8, expected the company DNS 192.168.19.10
+C11: using the leased resolver 8.8.8.8, www did not resolve to 192.168.19.20
+```
+
+**Finding:** DHCP was advertising a public DNS resolver instead of the company's internal DNS server. Consequently, clients were not automatically configured to use the DNS service required by the lab.
