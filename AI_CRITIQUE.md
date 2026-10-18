@@ -530,3 +530,11 @@ Our main advantage was being able to inspect the live lab environment and collec
 We also followed the faults in stages. Initially, DNS queries timed out. After removing the UDP firewall rule, the forward-zone error became visible. After correcting the zone-file path, we could identify the incorrect API address. Finally, correcting the DHCP DNS-server option allowed the client to use the required internal DNS server.
 
 This process helped us distinguish a possible explanation from a fault confirmed by evidence.
+
+### 2. Where AI Genuinely Helped
+
+AI was useful for explaining unfamiliar commands and technical concepts, organizing troubleshooting steps, and helping us understand what different DNS responses might indicate.
+
+Commands such as `named-checkconf -z`, `named-checkzone`, `dig +tcp`, `iptables -L INPUT -n -v`, and `dhcpcd -U cli0` helped us investigate the BIND, firewall, and DHCP components systematically.
+
+However, a command explanation or proposed fix was not enough by itself. We accepted a diagnosis only when it matched our observations and could be verified in the lab.
