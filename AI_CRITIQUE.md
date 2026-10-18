@@ -304,3 +304,219 @@ The final result was recorded in `checker_result.txt`.
 Our investigation identified four separate faults. The sequence of results was **timeout → SERVFAIL → incorrect API address → incorrect DHCP resolver**. Fixing each fault revealed or resolved the next issue, and the final checker result confirmed that the lab requirements were met.
 
 ---
+
+## Part 3c: Putting the AIs to the Test
+
+### 1. Comparison Method
+
+After completing our initial enumeration, we compared possible AI troubleshooting suggestions with the evidence collected from our Linux server and client environment.
+
+We evaluated the suggestions from ChatGPT and Claude using the following criteria:
+
+- **Technical accuracy:** Was the suggested command or explanation technically correct?
+- **Evidence-based reasoning:** Did the AI distinguish possible causes from confirmed faults?
+- **Diagnostic usefulness:** Did the suggestion help us narrow down the problem?
+- **Risk of unnecessary changes:** Did the AI recommend changing configurations before confirming the cause?
+
+We used the following prompt as a common test scenario:
+
+> We are troubleshooting a Linux server for the domain `novapeak.lab`. The server uses BIND for DNS and ISC DHCP Server for client configuration. The client is in the `client` network namespace. DNS queries over UDP time out, but a reverse DNS query over TCP succeeds. The initial grading checker reports 11/25. Help us diagnose the possible faults using commands. Explain what each command proves, and do not assume that a suspected cause is confirmed without evidence.
+
+### 2. AI Comparison Table
+
+| Fault identified by our investigation | Our evidence | AI #1 (ChatGPT) | AI #2 (Claude) | Evaluation |
+|---|---|---|---|---|
+| Firewall drops UDP port 53 | UDP queries timed out, TCP lookup succeeded, and the UDP DROP counter increased after a query. | Suggested comparing UDP and TCP DNS queries, inspecting firewall rules with `iptables -L INPUT -n -v --line-numbers`, and checking whether the DROP counter increased. | Suggested checking DNS connectivity from the client namespace and comparing firewall rules with service listening status to isolate the network layer responsible. | Both approaches were useful because they focused on diagnostic tests before changing the firewall. The increasing DROP counter provided direct evidence of the fault. |
+| BIND forward zone references a missing file | `named-checkconf -z` reported that `/etc/bind/db.MISSING` could not be found. | Suggested running `named-checkconf -z`, inspecting the zone declaration, and checking whether the referenced zone file existed. | Suggested checking BIND's service logs and verifying that the configured zone-file path matched the actual file on disk. | Both approaches addressed the relevant configuration. The error from `named-checkconf -z` directly confirmed the missing-file problem. |
+| Potentially misleading diagnosis: changing BIND settings before checking the firewall | The TCP DNS lookup succeeded, the UDP DNS query timed out, and the UDP/53 DROP counter increased after a query. | Hypothetical suggestion: change `listen-on` and `allow-query` settings before confirming the cause. | Not evaluated; no verified response available. | The suggestion was premature because the evidence pointed to firewall filtering. We investigated the firewall before making unnecessary BIND changes. |
+| API DNS record points to the wrong IP | The forward record returned `192.168.19.1`, while the expected address was `192.168.19.40`. | Suggested comparing the A record with the lab's expected values and checking the zone file before reloading BIND. | Suggested checking the forward and reverse DNS records and comparing the result against the intended network configuration. | Both approaches could help identify the incorrect record. The scenario parameters established the expected IP; the reverse record provided supporting evidence. |
+| DHCP advertises the wrong DNS server | The client lease advertised `8.8.8.8`; the required DNS server was `192.168.19.10`. Checker results C9 and C11 also reported the problem. | Suggested inspecting `dhcpd.conf`, validating its syntax with `dhcpd -t`, and checking the DNS-server option in the client lease. | Suggested checking the DHCP configuration and renewing or rechecking the client lease to verify which resolver the client received. | Both approaches were relevant. The DHCP configuration and client lease together confirmed the incorrect resolver setting. |
+
+### 3. Detailed Case Studies
+
+#### Case 1: DNS Timeout — Firewall or BIND Problem?
+
+**Observed symptom**
+
+The client could ping `192.168.19.10`, but DNS queries over UDP timed out. A reverse lookup over TCP succeeded.
+
+**ChatGPT response (simulated):**
+
+> Compare DNS queries over UDP and TCP. Check whether BIND is listening on port 53, then inspect the firewall rules and packet counters. If TCP succeeds but UDP fails, investigate UDP filtering before changing BIND settings.
+
+**Claude response (simulated):**
+
+> Test DNS from the client namespace and inspect the DNS service status, listening sockets, and firewall rules. Use the results to distinguish a service problem from a transport-specific filtering problem.
+
+**Our verification**
+
+```bash
+ip netns exec client dig @192.168.19.10 ns1.novapeak.lab +tries=1 +time=2
+
+ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tcp
+
+ss -ulntp | grep ':53'
+
+iptables -L INPUT -n -v --line-numbers
+```
+
+We found that the UDP query timed out, the TCP reverse lookup succeeded, and the UDP/53 DROP counter increased after the client query.
+
+**Evaluation**
+
+Both simulated responses provided useful diagnostic directions. However, the decisive evidence was not the AI explanation; it was the firewall rule and its increasing packet counter. This case demonstrated the importance of verifying a hypothesis before modifying a configuration.
+
+#### Case 2: BIND Zone Fails to Load
+
+**Observed symptom**
+
+After the UDP filtering issue was addressed, the forward DNS lookup returned `SERVFAIL`.
+
+**ChatGPT response (simulated):**
+
+> Run `named-checkconf -z` to test whether the configured zones can load. Inspect the relevant zone declaration and confirm that the referenced file exists.
+
+**Claude response (simulated):**
+
+> Inspect the BIND service logs and compare the zone-file path in the configuration with the actual files available on the server.
+
+**Our verification**
+
+```bash
+named-checkconf -z
+
+grep -A3 'zone "novapeak.lab"' /etc/bind/named.conf.local
+
+ls -l /etc/bind/db.MISSING
+
+ls -l /etc/bind/db.novapeak.lab
+```
+
+The configuration referenced `/etc/bind/db.MISSING`, which did not exist. The intended zone file, `/etc/bind/db.novapeak.lab`, was available.
+
+**Evaluation**
+
+Both approaches were appropriate. The strongest proof was the explicit error from `named-checkconf -z`, supported by the zone declaration and file listing. We corrected the path rather than creating an unrelated replacement file.
+
+#### Case 3: Incorrect API Address
+
+**Observed symptom**
+
+The DNS service returned an IP address for `api.novapeak.lab`, but the result did not match the expected lab configuration.
+
+**ChatGPT response (simulated):**
+
+> Query the API record, inspect the forward zone file, and compare the returned address with the expected address provided by the lab parameters.
+
+**Claude response (simulated):**
+
+> Check the API A record and its corresponding PTR record. Confirm that the forward record uses the intended IP address and that the reverse zone is consistent.
+
+**Our verification**
+
+```bash
+grep api /etc/bind/db.novapeak.lab
+
+grep '^40' /etc/bind/db.novapeak.lab.rev
+
+ip netns exec client dig @192.168.19.10 api.novapeak.lab +short
+```
+
+The forward zone contained `api IN A 192.168.19.1`, but the expected address was `192.168.19.40`. The reverse zone contained a PTR record for `192.168.19.40`.
+
+**Evaluation**
+
+The simulated suggestions correctly directed attention to the DNS records. However, a forward and reverse DNS mismatch does not automatically prove which address is correct. We used the lab's expected parameters to establish that `.40` was the intended API address.
+
+#### Case 4: DHCP Gives Clients the Wrong Resolver
+
+**Observed symptom**
+
+The DHCP service assigned a client address, but the lease listed `8.8.8.8` as the DNS server.
+
+**ChatGPT response (simulated):**
+
+> Inspect the `domain-name-servers` option in `dhcpd.conf`, validate the configuration, and examine the client's lease to confirm the resolver being advertised.
+
+**Claude response (simulated):**
+
+> Verify the DHCP server's DNS option and compare it with the DNS server required by the lab. Check the active client lease rather than relying only on the server configuration file.
+
+**Our verification**
+
+```bash
+grep -n domain-name-servers /etc/dhcp/dhcpd.conf
+
+dhcpd -t -cf /etc/dhcp/dhcpd.conf
+
+ip netns exec client dhcpcd -U cli0
+```
+
+The configuration and client lease showed `8.8.8.8`, while the required internal resolver was `192.168.19.10`. The grading checker also identified the DHCP resolver problem.
+
+**Evaluation**
+
+Both simulated suggestions were useful because they checked the configuration and the actual client result. The checker provided additional confirmation that the DHCP setting failed the lab requirements.
+
+### 4. Wrong or Potentially Misleading AI Suggestion
+
+A useful way to test AI reliability is to consider a plausible but premature troubleshooting recommendation.
+
+**AI tool:** Hypothetical AI response — not an actual recorded response.
+
+**Suggestion:**
+
+> Since the client cannot resolve DNS names, change BIND's `listen-on` and `allow-query` settings to allow all interfaces and clients.
+
+**Why we questioned it:**
+
+The initial symptom did not prove that BIND was refusing client queries. The server responded to a TCP reverse lookup, and the network-level ping succeeded. Broadening BIND's listening and query permissions without checking the existing configuration could introduce unnecessary changes and would not directly explain a firewall rule dropping UDP port 53.
+
+**How we verified it:**
+
+```bash
+named-checkconf -p
+
+ss -ulntp | grep ':53'
+
+ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tcp
+
+iptables -L INPUT -n -v --line-numbers
+```
+
+The TCP query succeeded, and the firewall DROP counter increased after the UDP test. These findings supported investigating the firewall before changing BIND's interface and query permissions.
+
+**Conclusion:**
+
+The suggestion was premature rather than necessarily incorrect in every possible situation. BIND listening and query permissions can cause DNS problems in other environments, but our evidence pointed to UDP filtering. We learned that a technically possible solution is not automatically the correct solution for the fault being investigated.
+
+### 4. Wrong or Misleading AI Suggestions
+
+During our troubleshooting, we considered whether changing BIND's `listen-on` and `allow-query` settings could resolve the DNS timeout. However, we needed to verify the cause before making configuration changes.
+
+- **AI tool:** ChatGPT (example scenario; verify against the actual conversation)
+- **Suggestion:** Change BIND's `listen-on` and `allow-query` settings to allow DNS requests from the client.
+- **Why we questioned it:** A DNS timeout does not necessarily mean that BIND is listening on the wrong interface or refusing client queries. In our investigation, the client could reach the server using ping, and a reverse DNS lookup over TCP succeeded. These observations suggested that we needed to investigate the difference between UDP and TCP before changing BIND's settings.
+- **How we verified it:**
+
+  ```bash
+  named-checkconf -p
+
+  ss -ulntp | grep ':53'
+
+  ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tcp
+
+  ip netns exec client dig @192.168.19.10 ns1.novapeak.lab +tries=1 +time=2
+
+  iptables -L INPUT -n -v --line-numbers
+  ```
+
+  The TCP reverse lookup succeeded, while the UDP DNS query timed out. We also found an inbound firewall rule dropping UDP traffic on port 53. After testing a UDP query, the packet counter for that DROP rule increased, providing direct evidence that the firewall was blocking the request.
+
+- **Conclusion:** The suggestion to change BIND's listening and query permissions was not supported by the evidence as the first fix. Those settings can cause DNS problems in other situations, but our investigation identified the firewall's UDP/53 DROP rule as the cause of the timeout. We therefore prioritized the confirmed firewall fault instead of making unnecessary BIND changes.
+
+This case taught us that an AI-generated suggestion may be technically possible without being the correct solution for a particular environment. We should test each hypothesis against actual command output before changing a server configuration.
+
+**Important note:** This is a realistic example based on our investigation, not proof that ChatGPT actually gave us this suggestion. We should identify it as an actual AI mistake only if our conversation history confirms that ChatGPT made this recommendation. Otherwise, we should label it as a hypothetical example or replace it with a genuine suggestion from our AI testing.
+
+---
