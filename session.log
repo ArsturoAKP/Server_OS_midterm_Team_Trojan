@@ -1,0 +1,1053 @@
+Script started on 2026-10-17 07:06:54+00:00 [TERM="xterm-256color" TTY="/dev/pts/5" COLUMNS="95" LINES="22"]
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mpython3 /root/grading/check_lab.py --group lab01 --phase build[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ python3 /root/grading/check_lab.py --group lab01 --phase build
+[?2004l  [   1/2 ] C4   named-checkconf -z FAILED; named-checkzone clean
+  [   2/2 ] C5   dhcpd -t clean; service running
+  [   0/2 ] C1   client cannot reach named at 192.168.19.10 (timeout/no status). Check listen-on, allow-query, firewall, and that it serves on lan0.
+  [ 0.0/3 ] C2   ns1 expected 192.168.19.10 got nothing; www expected 192.168.19.20 got nothing; mail expected 192.168.19.30 got nothing; api expected 192.168.19.40 got nothing
+  [   0/2 ] C3   reverse lookup of 192.168.19.10 did not return ns1 (got nothing). Check the reverse zone and its PTR.
+  [   3/3 ] C6   client obtained a lease: 192.168.19.104
+  [ 2.0/2 ] C7   pool+netmask correct
+  [   2/2 ] C8   gateway advertised correctly
+  [   0/3 ] C9   DHCP advertises 8.8.8.8, expected the company DNS 192.168.19.10 -- this is the integration the whole project is about
+  [   1/1 ] C10  company domain advertised
+  [   0/3 ] C11  using the leased resolver 8.8.8.8, www did not resolve to 192.168.19.20 (got nothing). If the leased resolver is a public one, that is the integration bug.
+  --------------------------------------------------
+  TOTAL: 11.0 / 25
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mpython3 /root/grading/params.py lab01[27mpython3 /root/grading/params.py lab01
+[?2004l================================================================
+  Server OS Midterm -- scenario for group 'lab01'
+================================================================
+  Company / domain     : novapeak  ->  novapeak.lab
+  Service network      : 192.168.19.0/24   gateway 192.168.19.1
+  DNS server (ns1) IP  : 192.168.19.10   <-- DHCP MUST advertise this
+  DHCP pool            : 192.168.19.104 .. 192.168.19.144
+  Lease time           : 3600 seconds
+
+  DNS zone must contain these A records:
+    ns1.novapeak.lab           -> 192.168.19.10
+    www.novapeak.lab           -> 192.168.19.20
+    mail.novapeak.lab          -> 192.168.19.30
+    api.novapeak.lab        -> 192.168.19.40
+
+  Reverse zone         : 19.168.192.in-addr.arpa
+  Service network is on interface: lan0  (NOT eth0)
+================================================================
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mgrep -n "dig\|netns\|def " /root/grading/check_lab.py[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ grep -n "dig\|netns\|def " /root/grading/check_lab.py
+[?2004l[32m[K20[m[K[36m[K:[m[KCANNOT BE TESTED IN THE BUILD SANDBOX (no root/[01;31m[Knetns[m[K/BIND). Every place that
+[32m[K40[m[K[36m[K:[m[K[01;31m[Kdef [m[Krun(cmd, timeout=30):
+[32m[K50[m[K[36m[K:[m[K[01;31m[Kdef [m[Krequire_root():
+[32m[K62[m[K[36m[K:[m[K    [01;31m[Kdef [m[K__init__(self):
+[32m[K65[m[K[36m[K:[m[K    [01;31m[Kdef [m[Kadd(self, cid, got, mx, note):
+[32m[K69[m[K[36m[K:[m[K    [01;31m[Kdef [m[Ktotal(self):
+[32m[K72[m[K[36m[K:[m[K    [01;31m[Kdef [m[Kdump(self, as_json, out):
+[32m[K93[m[K[36m[K:[m[K# Client-side primitives: drive a real lease, and [01;31m[Kdig[m[K from the namespace.
+[32m[K95[m[K[36m[K:[m[K[01;31m[Kdef [m[Kget_lease(ns=NS, iface=CLI0):
+[32m[K110[m[K[36m[K:[m[K    run(["ip", "[01;31m[Knetns[m[K", "exec", ns, "dhcpcd", "-k", iface], timeout=10)
+[32m[K113[m[K[36m[K:[m[K    _sp.Popen(["ip", "[01;31m[Knetns[m[K", "exec", ns, "dhcpcd", "-b", "-t", "12", iface],
+[32m[K119[m[K[36m[K:[m[K        rc, out, err = run(["ip", "[01;31m[Knetns[m[K", "exec", ns, "dhcpcd", "-U", iface],
+[32m[K134[m[K[36m[K:[m[K        run(["ip", "[01;31m[Knetns[m[K", "exec", ns, "ip", "addr", "flush", "dev", iface], timeout=8)
+[32m[K135[m[K[36m[K:[m[K        run(["ip", "[01;31m[Knetns[m[K", "exec", ns, "ip", "addr", "add",
+[32m[K138[m[K[36m[K:[m[K            run(["ip", "[01;31m[Knetns[m[K", "exec", ns, "ip", "route", "add", "default",
+[32m[K143[m[K[36m[K:[m[K[01;31m[Kdef [m[K_parse_lease(dump_text):
+[32m[K175[m[K[36m[K:[m[K[01;31m[Kdef [m[K_kv(line):
+[32m[K180[m[K[36m[K:[m[K[01;31m[Kdef [m[K[01;31m[Kdig[m[K(name, server=None, ns=NS, rrtype=None, reverse=False):
+[32m[K181[m[K[36m[K:[m[K    """Run [01;31m[Kdig[m[K from inside the client namespace. Returns (status, aa, answers).
+[32m[K182[m[K[36m[K:[m[K    If server is None, [01;31m[Kdig[m[K uses the namespace's resolver (i.e. what the lease
+[32m[K186[m[K[36m[K:[m[K    cmd = ["ip", "[01;31m[Knetns[m[K", "exec", ns, "[01;31m[Kdig[m[K", "+time=3", "+tries=1"]
+[32m[K229[m[K[36m[K:[m[K[01;31m[Kdef [m[Knamed_checks(domain, zone_file):
+[32m[K235[m[K[36m[K:[m[K[01;31m[Kdef [m[Kdhcpd_valid_and_running(dhcpd_conf):
+[32m[K246[m[K[36m[K:[m[K[01;31m[Kdef [m[Kphase_build(p, R):
+[32m[K265[m[K[36m[K:[m[K    st, aa, ans = [01;31m[Kdig[m[K(domain, server=dns, rrtype="SOA")
+[32m[K281[m[K[36m[K:[m[K        st, aa, ans = [01;31m[Kdig[m[K("%s.%s" % (host, domain), server=dns, rrtype="A")
+[32m[K291[m[K[36m[K:[m[K    st, aa, ans = [01;31m[Kdig[m[K(dns, server=dns, reverse=True)
+[32m[K354[m[K[36m[K:[m[K        st, aa, ans = [01;31m[Kdig[m[K("www.%s" % domain, server=leased_dns)
+[32m[K367[m[K[36m[K:[m[K[01;31m[Kdef [m[K_fallback_offer(p, dhcpd_conf):
+[32m[K381[m[K[36m[K:[m[K[01;31m[Kdef [m[K_in_pool(ip, start, end):
+[32m[K382[m[K[36m[K:[m[K    [01;31m[Kdef [m[Kn(a):
+[32m[K396[m[K[36m[K:[m[K[01;31m[Kdef [m[Kphase_repair(p, R):
+[32m[K416[m[K[36m[K:[m[K[01;31m[Kdef [m[K_read_marker(path):
+[32m[K423[m[K[36m[K:[m[K[01;31m[Kdef [m[Kphase_change(p, R):
+[32m[K436[m[K[36m[K:[m[K    st, aa, ans = [01;31m[Kdig[m[K(p["domain"], server=p["dns_ip"], rrtype="MX")
+[32m[K447[m[K[36m[K:[m[K        st, aa, ans = [01;31m[Kdig[m[K(ip, server=p["dns_ip"], reverse=True)
+[32m[K453[m[K[36m[K:[m[K[01;31m[Kdef [m[Kselftest():
+[32m[K457[m[K[36m[K:[m[K    checks that the grader's PRIMITIVES work: can it drive a lease, can it [01;31m[Kdig[m[K
+[32m[K466[m[K[36m[K:[m[K    st, aa, ans = [01;31m[Kdig[m[K("example.com", server="127.0.0.1")
+[32m[K467[m[K[36m[K:[m[K    print("  [01;31m[Kdig[m[K from namespace returned status=%s (any status means [01;31m[Kdig[m[K works)" % st)
+[32m[K472[m[K[36m[K:[m[K[01;31m[Kdef [m[Kmain():
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip -br addr[27mip -br addr
+[?2004llo               UNKNOWN        127.0.0.1/8 ::1/128 
+enp1s0           UP             172.30.1.2/24 fe80::6bcc:2497:d3ea:96c6/64 
+docker0          DOWN           172.17.0.1/16 
+lan0@if4         UP             192.168.19.10/24 fe80::e4e5:38ff:fef7:cd7d/64 
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ ifconfig
+[?2004ldocker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1454
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether a6:13:4f:dd:7d:08  txqueuelen 0  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp1s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1450
+        inet 172.30.1.2  netmask 255.255.255.0  broadcast 172.30.1.255
+        inet6 fe80::6bcc:2497:d3ea:96c6  prefixlen 64  scopeid 0x20<link>
+        ether 7e:21:af:9b:c8:23  txqueuelen 1000  (Ethernet)
+        RX packets 27115  bytes 37127240 (37.1 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 9338  bytes 6823429 (6.8 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lan0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.19.10  netmask 255.255.255.0  broadcast 0.0.0.0
+        inet6 fe80::e4e5:38ff:fef7:cd7d  prefixlen 64  scopeid 0x20<link>
+        ether 22:c5:ba:ee:85:23  txqueuelen 1000  (Ethernet)
+        RX packets 29  bytes 3042 (3.0 KB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 17  bytes 1990 (1.9 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 93  bytes 7710 (7.7 KB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 93  bytes 7710 (7.7 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mip route[27mip route
+[?2004ldefault via 172.30.1.1 dev enp1s0 proto dhcp src 172.30.1.2 metric 1002 mtu 1450 
+172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown 
+172.30.1.0/24 dev enp1s0 proto dhcp scope link src 172.30.1.2 metric 1002 mtu 1450 
+192.168.19.0/24 dev lan0 proto kernel scope link src 192.168.19.10 
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mip netns list[27mip netns list
+[?2004lclient (id: 0)
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mip netns exec client ip -br addr[27mip netns exec client ip -br addr
+[?2004llo               UNKNOWN        127.0.0.1/8 ::1/128 
+cli0@if5         UP             192.168.19.104/24 
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client ip route[27mip netns exec client ip route
+[?2004ldefault via 192.168.19.1 dev cli0 proto dhcp src 192.168.19.104 metric 1004 
+192.168.19.0/24 dev cli0 proto dhcp scope link src 192.168.19.104 metric 1004 
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client ping -c 3 192.168.19.10[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client ping -c 3 192.168.19.10
+[?2004lPING 192.168.19.10 (192.168.19.10) 56(84) bytes of data.
+64 bytes from 192.168.19.10: icmp_seq=1 ttl=64 time=0.061 ms
+64 bytes from 192.168.19.10: icmp_seq=2 ttl=64 time=0.041 ms
+64 bytes from 192.168.19.10: icmp_seq=3 ttl=64 time=0.042 ms
+
+--- 192.168.19.10 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2060ms
+rtt min/avg/max/mdev = 0.041/0.048/0.061/0.009 ms
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mps aux | grep -i dhcpcd[27mps aux | grep -i dhcpcd
+[?2004l[01;31m[Kdhcpcd[m[K       861  0.0  0.2   8556  4248 ?        S    07:03   0:00 [01;31m[Kdhcpcd[m[K: enp1s0 [ip4] [ip6]
+root         862  0.0  0.1   8416  2552 ?        S    07:03   0:00 [01;31m[Kdhcpcd[m[K: [privileged proxy] enp1s0 [ip4] [ip6]
+[01;31m[Kdhcpcd[m[K       863  0.0  0.1   8396  1956 ?        S    07:03   0:00 [01;31m[Kdhcpcd[m[K: [network proxy] enp1s0 [ip4] [ip6]
+[01;31m[Kdhcpcd[m[K       864  0.0  0.1   8396  1956 ?        S    07:03   0:00 [01;31m[Kdhcpcd[m[K: [control proxy] enp1s0 [ip4] [ip6]
+[01;31m[Kdhcpcd[m[K      1148  0.0  0.1   8416  2172 ?        S    07:03   0:00 [01;31m[Kdhcpcd[m[K: [DHCP6 proxy] fe80::6bcc:2497:d3ea:96c6
+[01;31m[Kdhcpcd[m[K      1150  0.0  0.1   8416  2232 ?        S    07:03   0:00 [01;31m[Kdhcpcd[m[K: [BPF ARP] enp1s0 172.30.1.2
+[01;31m[Kdhcpcd[m[K      1162  0.0  0.1   8416  2232 ?        S    07:03   0:00 [01;31m[Kdhcpcd[m[K: [BOOTP proxy] 172.30.1.2
+[01;31m[Kdhcpcd[m[K      2529  0.0  0.1   8564  2692 ?        S    07:07   0:00 [01;31m[Kdhcpcd[m[K: cli0 [ip4] [ip6]
+root        2530  0.0  0.1   8420  2528 ?        S    07:07   0:00 [01;31m[Kdhcpcd[m[K: [privileged proxy] cli0 [ip4] [ip6]
+[01;31m[Kdhcpcd[m[K      2531  0.0  0.1   8396  1996 ?        S    07:07   0:00 [01;31m[Kdhcpcd[m[K: [network proxy] cli0 [ip4] [ip6]
+[01;31m[Kdhcpcd[m[K      2532  0.0  0.1   8396  1996 ?        S    07:07   0:00 [01;31m[Kdhcpcd[m[K: [control proxy] cli0 [ip4] [ip6]
+[01;31m[Kdhcpcd[m[K      2535  0.0  0.1   8420  2208 ?        S    07:07   0:00 [01;31m[Kdhcpcd[m[K: [DHCP6 proxy] fe80::405:1cff:fe96:897d
+[01;31m[Kdhcpcd[m[K      2592  0.0  0.1   8420  2272 ?        S    07:07   0:00 [01;31m[Kdhcpcd[m[K: [BOOTP proxy] 192.168.19.104
+root        2680  0.0  0.0   3532  1836 pts/6    S+   07:09   0:00 grep --color=auto -i [01;31m[Kdhcpcd[m[K
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mip netns exec client dhcpcd -U cli0[27mip netns exec client dhcpcd -U cli0
+[?2004lreason=CARRIER
+interface=cli0
+protocol=link
+if_configured=true
+ifcarrier=up
+ifmetric=1004
+ifwireless=0
+ifflags=69699
+ifmtu=1500
+
+reason=REBOOT
+interface=cli0
+protocol=dhcp
+ip_address=192.168.19.104
+subnet_cidr=24
+broadcast_address=192.168.19.255
+network_number=192.168.19.0
+subnet_mask=255.255.255.0
+routers=192.168.19.1
+domain_name_servers=8.8.8.8
+domain_name=novapeak.lab
+dhcp_lease_time=3594
+dhcp_message_type=5
+dhcp_server_identifier=192.168.19.10
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dhcpcd -U cli0 | grep -E 'ip_address|routers|domain_name'[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dhcpcd -U cli0 | grep -E 'ip_address|routers|domain_name'
+[?2004l[01;31m[Kip_address[m[K=192.168.19.104
+[01;31m[Krouters[m[K=192.168.19.1
+[01;31m[Kdomain_name[m[K_servers=8.8.8.8
+[01;31m[Kdomain_name[m[K=novapeak.lab
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcat /var/lib/dhcp/dhcpd.leases[27mcat /var/lib/dhcp/dhcpd.leases
+[?2004l# The format of this file is documented in the dhcpd.leases(5) manual page.
+# This lease file was written by isc-dhcp-4.4.3-P1
+
+# authoring-byte-order entry is generated, DO NOT DELETE
+authoring-byte-order little-endian;
+
+server-duid "\000\001\000\0012e\332\361\"\305\272\356\205#";
+
+lease 192.168.19.104 {
+  starts 6 2026/10/17 07:07:25;
+  ends 6 2026/10/17 08:07:25;
+  cltt 6 2026/10/17 07:07:25;
+  binding state active;
+  next binding state free;
+  rewind binding state free;
+  hardware ethernet 06:05:1c:96:89:7d;
+  uid "\377\034\226\211}\000\001\000\0012e\3329~!\257\233\310#";
+}
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7msystemctl status named --no-pager[27msystemctl status named --no-pager
+[?2004l[0;1;32m●[0m named.service - BIND Domain Name Server
+     Loaded: loaded (]8;;file://ubuntu/usr/lib/systemd/system/named.service/usr/lib/systemd/system/named.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Sat 2026-10-17 07:06:25 UTC; 3min 54s ago
+       Docs: ]8;;man:named(8)man:named(8)]8;;
+   Main PID: 2452 (named)
+     Status: "[0;1;36mrunning[0m"
+      Tasks: 5 (limit: 2237)
+     Memory: 22.0M (peak: 22.2M)
+        CPU: 32ms
+     CGroup: /system.slice/named.service
+             └─[0;38;5;245m2452 /usr/sbin/named -f -u bind[0m
+
+Oct 17 07:06:25 ubuntu named[2452]: SERVFAIL unexpected RCODE resolving './NS/IN': 198.4…0.4#53
+Oct 17 07:06:25 ubuntu named[2452]: SERVFAIL unexpected RCODE resolving './NS/IN': 199.7….13#53
+Oct 17 07:06:25 ubuntu named[2452]: SERVFAIL unexpected RCODE resolving './NS/IN': 202.1….33#53
+Oct 17 07:06:25 ubuntu named[2452]: SERVFAIL unexpected RCODE resolving './NS/IN': 198.9….53#53
+Oct 17 07:06:25 ubuntu named[2452]: SERVFAIL unexpected RCODE resolving './NS/IN': 192.1…6.4#53
+Oct 17 07:06:25 ubuntu named[2452]: SERVFAIL unexpected RCODE resolving './NS/IN': 170.2…0.2#53
+Oct 17 07:06:25 ubuntu named[2452]: SERVFAIL unexpected RCODE resolving './NS/IN': 192.3….17#53
+Oct 17 07:06:25 ubuntu named[2452]: SERVFAIL unexpected RCODE resolving './NS/IN': 192.2….10#53
+Oct 17 07:06:25 ubuntu named[2452]: SERVFAIL unexpected RCODE resolving './NS/IN': 192.5…241#53
+Oct 17 07:06:25 ubuntu named[2452]: [0;1;39m[0;1;31m[0;1;39mresolver priming query complete: failure[0m
+Hint: Some lines were ellipsized, use -l to show in full.
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mjournalctl -u named --no-pager | grep -iE "error|fail|denied|not loaded|loaded s[27m[7me[27m[7merial|MISSING"[27m[A journalctl -u named --no-pager | grep -iE "error|fail|denied|not loaded|loaded serial|MISSING"
+[?2004lOct 17 07:06:15 ubuntu named[2271]: built with  '--build=x86_64-linux-gnu' '--prefix=/usr' '--includedir=${prefix}/include' '--mandir=${prefix}/share/man' '--infodir=${prefix}/share/info' '--sysconfdir=/etc' '--localstatedir=/var' '--disable-option-checking' '--disable-silent-rules' '--libdir=${prefix}/lib/x86_64-linux-gnu' '--runstatedir=/run' '--disable-maintainer-mode' '--disable-dependency-tracking' '--libdir=/usr/lib/x86_64-linux-gnu' '--sysconfdir=/etc/bind' '--with-python=python3' '--localstatedir=/' '--enable-threads' '--enable-largefile' '--with-libtool' '--enable-shared' '--disable-static' '--with-gost=no' '--with-openssl=/usr' '--with-gssapi=yes' '--with-libidn2' '--with-json-c' '--with-lmdb=/usr' '--with-gnu-ld' '--with-maxminddb' '--with-atf=no' '--enable-ipv6' '--enable-rrl' '--enable-filter-aaaa' '--disable-native-pkcs11' 'build_alias=x86_64-linux-gnu' 'CFLAGS=-g -O2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/build/bind9-U90G79/bind9-9.18.39=. -flto=auto -ffat-lto-objects -fstack-protector-strong -fstack-clash-protection -Wformat -W[01;31m[Kerror[m[K=format-security -fcf-protection -fdebug-prefix-map=/build/bind9-U90G79/bind9-9.18.39=/usr/src/bind9-1:9.18.39-0ubuntu0.24.04.8 -fno-strict-aliasing -fno-delete-null-pointer-checks -DNO_VERSION_DATE -DDIG_SIGCHASE' 'LDFLAGS=-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -Wl,-z,relro -Wl,-z,now -ledit' 'CPPFLAGS=-Wdate-time -D_FORTIFY_SOURCE=3'
+Oct 17 07:06:15 ubuntu named[2271]: managed-keys-zone: [01;31m[Kloaded serial[m[K 0
+Oct 17 07:06:15 ubuntu named[2271]: zone localhost/IN: [01;31m[Kloaded serial[m[K 2
+Oct 17 07:06:15 ubuntu named[2271]: zone 0.in-addr.arpa/IN: [01;31m[Kloaded serial[m[K 1
+Oct 17 07:06:15 ubuntu named[2271]: zone 255.in-addr.arpa/IN: [01;31m[Kloaded serial[m[K 1
+Oct 17 07:06:15 ubuntu named[2271]: zone 127.in-addr.arpa/IN: [01;31m[Kloaded serial[m[K 1
+Oct 17 07:06:15 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.33.4.12#53
+Oct 17 07:06:15 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.58.128.30#53
+Oct 17 07:06:15 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.36.148.17#53
+Oct 17 07:06:15 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 193.0.14.129#53
+Oct 17 07:06:15 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 199.7.91.13#53
+Oct 17 07:06:15 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.203.230.10#53
+Oct 17 07:06:15 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 202.12.27.33#53
+Oct 17 07:06:15 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 198.41.0.4#53
+Oct 17 07:06:16 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 199.7.83.42#53
+Oct 17 07:06:16 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 198.97.190.53#53
+Oct 17 07:06:16 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 170.247.170.2#53
+Oct 17 07:06:16 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.5.5.241#53
+Oct 17 07:06:16 ubuntu named[2271]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.112.36.4#53
+Oct 17 07:06:16 ubuntu named[2271]: resolver priming query complete: [01;31m[Kfail[m[Kure
+Oct 17 07:06:25 ubuntu named[2452]: built with  '--build=x86_64-linux-gnu' '--prefix=/usr' '--includedir=${prefix}/include' '--mandir=${prefix}/share/man' '--infodir=${prefix}/share/info' '--sysconfdir=/etc' '--localstatedir=/var' '--disable-option-checking' '--disable-silent-rules' '--libdir=${prefix}/lib/x86_64-linux-gnu' '--runstatedir=/run' '--disable-maintainer-mode' '--disable-dependency-tracking' '--libdir=/usr/lib/x86_64-linux-gnu' '--sysconfdir=/etc/bind' '--with-python=python3' '--localstatedir=/' '--enable-threads' '--enable-largefile' '--with-libtool' '--enable-shared' '--disable-static' '--with-gost=no' '--with-openssl=/usr' '--with-gssapi=yes' '--with-libidn2' '--with-json-c' '--with-lmdb=/usr' '--with-gnu-ld' '--with-maxminddb' '--with-atf=no' '--enable-ipv6' '--enable-rrl' '--enable-filter-aaaa' '--disable-native-pkcs11' 'build_alias=x86_64-linux-gnu' 'CFLAGS=-g -O2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/build/bind9-U90G79/bind9-9.18.39=. -flto=auto -ffat-lto-objects -fstack-protector-strong -fstack-clash-protection -Wformat -W[01;31m[Kerror[m[K=format-security -fcf-protection -fdebug-prefix-map=/build/bind9-U90G79/bind9-9.18.39=/usr/src/bind9-1:9.18.39-0ubuntu0.24.04.8 -fno-strict-aliasing -fno-delete-null-pointer-checks -DNO_VERSION_DATE -DDIG_SIGCHASE' 'LDFLAGS=-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -Wl,-z,relro -Wl,-z,now -ledit' 'CPPFLAGS=-Wdate-time -D_FORTIFY_SOURCE=3'
+Oct 17 07:06:25 ubuntu named[2452]: managed-keys-zone: [01;31m[Kloaded serial[m[K 2
+Oct 17 07:06:25 ubuntu named[2452]: zone 0.in-addr.arpa/IN: [01;31m[Kloaded serial[m[K 1
+Oct 17 07:06:25 ubuntu named[2452]: zone 127.in-addr.arpa/IN: [01;31m[Kloaded serial[m[K 1
+Oct 17 07:06:25 ubuntu named[2452]: zone 19.168.192.in-addr.arpa/IN: [01;31m[Kloaded serial[m[K 2024010101
+Oct 17 07:06:25 ubuntu named[2452]: zone 255.in-addr.arpa/IN: [01;31m[Kloaded serial[m[K 1
+Oct 17 07:06:25 ubuntu named[2452]: zone novapeak.lab/IN: loading from master file /etc/bind/db.[01;31m[KMISSING[m[K [01;31m[Kfail[m[Ked: file not found
+Oct 17 07:06:25 ubuntu named[2452]: zone novapeak.lab/IN: [01;31m[Knot loaded[m[K due to [01;31m[Kerror[m[Ks.
+Oct 17 07:06:25 ubuntu named[2452]: zone localhost/IN: [01;31m[Kloaded serial[m[K 2
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.33.4.12#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 199.7.83.42#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 193.0.14.129#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.58.128.30#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 198.41.0.4#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 199.7.91.13#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 202.12.27.33#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 198.97.190.53#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.112.36.4#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 170.247.170.2#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.36.148.17#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.203.230.10#53
+Oct 17 07:06:25 ubuntu named[2452]: SERV[01;31m[KFAIL[m[K unexpected RCODE resolving './NS/IN': 192.5.5.241#53
+Oct 17 07:06:25 ubuntu named[2452]: resolver priming query complete: [01;31m[Kfail[m[Kure
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mps -o user,pid,cmd -C named[27mps -o user,pid,cmd -C named
+[?2004lUSER         PID CMD
+bind        2452 /usr/sbin/named -f -u bind
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcat /etc/default/named[27mcat /etc/default/named
+[?2004l#
+# run resolvconf?
+RESOLVCONF=no
+
+# startup options for the server
+OPTIONS="-u bind"
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mss -ulntp | grep ':53'[27mss -ulntp | grep ':53'
+[?2004ludp   UNCONN 0      0                           192.168.19.10[01;31m[K:53[m[K         0.0.0.0:*    users:(("named",pid=2452,fd=25))                      
+udp   UNCONN 0      0                              172.17.0.1[01;31m[K:53[m[K         0.0.0.0:*    users:(("named",pid=2452,fd=23))                      
+udp   UNCONN 0      0                              172.30.1.2[01;31m[K:53[m[K         0.0.0.0:*    users:(("named",pid=2452,fd=21))                      
+udp   UNCONN 0      0                               127.0.0.1[01;31m[K:53[m[K         0.0.0.0:*    users:(("named",pid=2452,fd=18))                      
+udp   UNCONN 0      0                              127.0.0.54[01;31m[K:53[m[K         0.0.0.0:*    users:(("systemd-resolve",pid=1215,fd=16))            
+udp   UNCONN 0      0                           127.0.0.53%lo[01;31m[K:53[m[K         0.0.0.0:*    users:(("systemd-resolve",pid=1215,fd=14))            
+udp   UNCONN 0      0                                   [::1][01;31m[K:53[m[K            [::]:*    users:(("named",pid=2452,fd=27))                      
+udp   UNCONN 0      0      [fe80::6bcc:2497:d3ea:96c6]%enp1s0[01;31m[K:53[m[K            [::]:*    users:(("named",pid=2452,fd=29))                      
+udp   UNCONN 0      0        [fe80::e4e5:38ff:fef7:cd7d]%lan0[01;31m[K:53[m[K            [::]:*    users:(("named",pid=2452,fd=31))                      
+tcp   LISTEN 0      10                             172.30.1.2[01;31m[K:53[m[K         0.0.0.0:*    users:(("named",pid=2452,fd=22))                      
+tcp   LISTEN 0      10                             172.17.0.1[01;31m[K:53[m[K         0.0.0.0:*    users:(("named",pid=2452,fd=24))                      
+tcp   LISTEN 0      10                          192.168.19.10[01;31m[K:53[m[K         0.0.0.0:*    users:(("named",pid=2452,fd=26))                      
+tcp   LISTEN 0      4096                        127.0.0.53%lo[01;31m[K:53[m[K         0.0.0.0:*    users:(("systemd-resolve",pid=1215,fd=15))            
+tcp   LISTEN 0      10                              127.0.0.1[01;31m[K:53[m[K         0.0.0.0:*    users:(("named",pid=2452,fd=19))                      
+tcp   LISTEN 0      4096                           127.0.0.54[01;31m[K:53[m[K         0.0.0.0:*    users:(("systemd-resolve",pid=1215,fd=17))            
+tcp   LISTEN 0      10     [fe80::6bcc:2497:d3ea:96c6]%enp1s0[01;31m[K:53[m[K            [::]:*    users:(("named",pid=2452,fd=30))                      
+tcp   LISTEN 0      10       [fe80::e4e5:38ff:fef7:cd7d]%lan0[01;31m[K:53[m[K            [::]:*    users:(("named",pid=2452,fd=32))                      
+tcp   LISTEN 0      10                                  [::1][01;31m[K:53[m[K            [::]:*    users:(("named",pid=2452,fd=28))                      
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mcat /etc/bind/named.conf[27mcat /etc/bind/named.conf
+[?2004l// This is the primary configuration file for the BIND DNS server named.
+//
+// Please read /usr/share/doc/bind9/README.Debian for information on the
+// structure of BIND configuration files in Debian, *BEFORE* you customize
+// this configuration file.
+//
+// If you are just adding zones, please do that in /etc/bind/named.conf.local
+
+include "/etc/bind/named.conf.options";
+include "/etc/bind/named.conf.local";
+include "/etc/bind/named.conf.default-zones";
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mcat /etc/bind/named.conf.options[27mcat /etc/bind/named.conf.options
+[?2004loptions {
+	directory "/var/cache/bind";
+	listen-on { any; };
+	allow-query { any; };
+	recursion no;
+};
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcat /etc/bind/named.conf.local[27mcat /etc/bind/named.conf.local
+[?2004lzone "novapeak.lab" {
+	type master;
+	file "/etc/bind/db.MISSING";
+};
+
+zone "19.168.192.in-addr.arpa" {
+	type master;
+	file "/etc/bind/db.novapeak.lab.rev";
+};
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnamed-checkconf -p[27mnamed-checkconf -p
+[?2004loptions {
+	directory "/var/cache/bind";
+	listen-on  {
+		"any";
+	};
+	recursion no;
+	allow-query {
+		"any";
+	};
+};
+zone "novapeak.lab" {
+	type master;
+	file "/etc/bind/db.MISSING";
+};
+zone "19.168.192.in-addr.arpa" {
+	type master;
+	file "/etc/bind/db.novapeak.lab.rev";
+};
+zone "." {
+	type hint;
+	file "/usr/share/dns/root.hints";
+};
+zone "localhost" {
+	type master;
+	file "/etc/bind/db.local";
+};
+zone "127.in-addr.arpa" {
+	type master;
+	file "/etc/bind/db.127";
+};
+zone "0.in-addr.arpa" {
+	type master;
+	file "/etc/bind/db.0";
+};
+zone "255.in-addr.arpa" {
+	type master;
+	file "/etc/bind/db.255";
+};
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mnamed-checkconf -z[27mnamed-checkconf -z
+[?2004lzone novapeak.lab/IN: loading from master file /etc/bind/db.MISSING failed: file not found
+zone novapeak.lab/IN: not loaded due to errors.
+_default/novapeak.lab/IN: file not found
+zone 19.168.192.in-addr.arpa/IN: loaded serial 2024010101
+zone localhost/IN: loaded serial 2
+zone 127.in-addr.arpa/IN: loaded serial 1
+zone 0.in-addr.arpa/IN: loaded serial 1
+zone 255.in-addr.arpa/IN: loaded serial 1
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mcat /etc/bind/db.novapeak.lab[27mcat /etc/bind/db.novapeak.lab
+[?2004l$TTL 3600
+@ IN SOA ns1.novapeak.lab. admin.novapeak.lab. ( 2024010101 3600 1800 604800 3600 )
+@ IN NS ns1.novapeak.lab.
+ns1 IN A 192.168.19.10
+www IN A 192.168.19.20
+mail IN A 192.168.19.30
+api IN A 192.168.19.1
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcat /etc/bind/db.novapeak.lab.rev[27mcat /etc/bind/db.novapeak.lab.rev
+[?2004l$TTL 3600
+@ IN SOA ns1.novapeak.lab. admin.novapeak.lab. ( 2024010101 3600 1800 604800 3600 )
+@ IN NS ns1.novapeak.lab.
+10 IN PTR ns1.novapeak.lab.
+20 IN PTR www.novapeak.lab.
+30 IN PTR mail.novapeak.lab.
+40 IN PTR api.novapeak.lab.
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnamed-checkzone novapeak.lab /etc/bind/db.novapeak.lab[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ named-checkzone novapeak.lab /etc/bind/db.novapeak.lab
+[?2004lzone novapeak.lab/IN: loaded serial 2024010101
+OK
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnamed-checkzone 19.168.192.in-addr.arpa /etc/bind/db.novapeak.lab.rev[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ named-checkzone 19.168.192.in-addr.arpa /etc/bind/db.novapeak.lab.rev
+[?2004lzone 19.168.192.in-addr.arpa/IN: loaded serial 2024010101
+OK
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mls -l /etc/bind/[27mls -l /etc/bind/
+[?2004ltotal 56
+-rw-r--r-- 1 root root 2928 Oct  9 16:07 bind.keys
+-rw-r--r-- 1 root root  255 Aug 21  2025 db.0
+-rw-r--r-- 1 root root  271 Aug 18  2025 db.127
+-rw-r--r-- 1 root root  237 Aug 18  2025 db.255
+-rw-r--r-- 1 root root  353 Aug 18  2025 db.empty
+-rw-r--r-- 1 root root  270 Aug 18  2025 db.local
+-rw-r--r-- 1 bind bind  212 Oct 17 07:06 db.novapeak.lab
+-rw-r--r-- 1 bind bind  233 Oct 17 07:06 db.novapeak.lab.rev
+-rw-r--r-- 1 root bind  458 Aug 21  2025 named.conf
+-rw-r--r-- 1 root bind  498 Aug 18  2025 named.conf.default-zones
+-rw-r--r-- 1 root bind  159 Oct 17 07:06 named.conf.local
+-rw-r--r-- 1 root bind  102 Oct 17 07:06 named.conf.options
+-rw-r----- 1 bind bind  100 Oct 17 07:06 rndc.key
+-rw-r--r-- 1 root root 1317 Aug 18  2025 zones.rfc1918
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mnamei -l /etc/bind/db.novapeak.lab[27mnamei -l /etc/bind/db.novapeak.lab
+[?2004lf: /etc/bind/db.novapeak.lab
+drwxr-xr-x root root /
+drwxr-xr-x root root etc
+drwxr-sr-x root bind bind
+-rw-r--r-- bind bind db.novapeak.lab
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnamei -l /etc/bind/db.novapeak.lab.rev[27mnamei -l /etc/bind/db.novapeak.lab.rev
+[?2004lf: /etc/bind/db.novapeak.lab.rev
+drwxr-xr-x root root /
+drwxr-xr-x root root etc
+drwxr-sr-x root bind bind
+-rw-r--r-- bind bind db.novapeak.lab.rev
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mrunuser -u bind -- cat /etc/bind/db.novapeak.lab > /dev/null && echo "bind CAN r[27m[7me[27m[7mead"[27m[A[01;32mroot@ubuntu[00m:[01;34m~[00m$ runuser -u bind -- cat /etc/bind/db.novapeak.lab > /dev/null && echo "bind CAN read"
+[?2004lbind CAN read
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7maa-status 2>/dev/null | grep -i named[27maa-status 2>/dev/null | grep -i named
+[?2004l   [01;31m[Knamed[m[K
+   /usr/sbin/[01;31m[Knamed[m[K (2452) [01;31m[Knamed[m[K
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7miptables -S[27miptables -S
+[?2004l-P INPUT ACCEPT
+-P FORWARD ACCEPT
+-P OUTPUT ACCEPT
+-N DOCKER
+-N DOCKER-BRIDGE
+-N DOCKER-CT
+-N DOCKER-FORWARD
+-N DOCKER-INTERNAL
+-N DOCKER-USER
+-A INPUT -p udp -m udp --dport 53 -j DROP
+-A FORWARD -j DOCKER-USER
+-A FORWARD -j DOCKER-FORWARD
+-A DOCKER ! -i docker0 -o docker0 -j DROP
+-A DOCKER-BRIDGE -o docker0 -j DOCKER
+-A DOCKER-CT -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A DOCKER-FORWARD -j DOCKER-CT
+-A DOCKER-FORWARD -j DOCKER-INTERNAL
+-A DOCKER-FORWARD -j DOCKER-BRIDGE
+-A DOCKER-FORWARD -i docker0 -j ACCEPT
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7miptables -L INPUT -n -v --line-numbers[27miptables -L INPUT -n -v --line-numbers
+[?2004lChain INPUT (policy ACCEPT 1265 packets, 78942 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        0     0 DROP       17   --  *      *       0.0.0.0/0            0.0.0.0/0            udp dpt:53
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnft list ruleset[27mnft list ruleset
+[?2004l# Warning: table ip nat is managed by iptables-nft, do not touch!
+table ip nat {
+	chain DOCKER {
+	}
+
+	chain PREROUTING {
+		type nat hook prerouting priority dstnat; policy accept;
+		fib daddr type local counter packets 40 bytes 2424 jump DOCKER
+	}
+
+	chain OUTPUT {
+		type nat hook output priority dstnat; policy accept;
+		ip daddr != 127.0.0.0/8 fib daddr type local counter packets 0 bytes 0 jump DOCKER
+	}
+
+	chain POSTROUTING {
+		type nat hook postrouting priority srcnat; policy accept;
+		ip saddr 172.17.0.0/16 oifname != "docker0" counter packets 0 bytes 0 masquerade
+	}
+}
+# Warning: table ip filter is managed by iptables-nft, do not touch!
+table ip filter {
+	chain DOCKER {
+		iifname != "docker0" oifname "docker0" counter packets 0 bytes 0 drop
+	}
+
+	chain DOCKER-FORWARD {
+		counter packets 0 bytes 0 jump DOCKER-CT
+		counter packets 0 bytes 0 jump DOCKER-INTERNAL
+		counter packets 0 bytes 0 jump DOCKER-BRIDGE
+		iifname "docker0" counter packets 0 bytes 0 accept
+	}
+
+	chain DOCKER-BRIDGE {
+		oifname "docker0" counter packets 0 bytes 0 jump DOCKER
+	}
+
+	chain DOCKER-CT {
+		oifname "docker0" ct state related,established counter packets 0 bytes 0 accept
+	}
+
+	chain DOCKER-INTERNAL {
+	}
+
+	chain FORWARD {
+		type filter hook forward priority filter; policy accept;
+		counter packets 0 bytes 0 jump DOCKER-USER
+		counter packets 0 bytes 0 jump DOCKER-FORWARD
+	}
+
+	chain DOCKER-USER {
+	}
+
+	chain INPUT {
+		type filter hook input priority filter; policy accept;
+		udp dport 53 counter packets 0 bytes 0 drop
+	}
+}
+# Warning: table ip6 nat is managed by iptables-nft, do not touch!
+table ip6 nat {
+	chain DOCKER {
+	}
+
+	chain PREROUTING {
+		type nat hook prerouting priority dstnat; policy accept;
+		fib daddr type local counter packets 0 bytes 0 jump DOCKER
+	}
+
+	chain OUTPUT {
+		type nat hook output priority dstnat; policy accept;
+		ip6 daddr != ::1 fib daddr type local counter packets 0 bytes 0 jump DOCKER
+	}
+}
+table ip6 filter {
+	chain DOCKER {
+	}
+
+	chain DOCKER-FORWARD {
+		counter packets 0 bytes 0 jump DOCKER-CT
+		counter packets 0 bytes 0 jump DOCKER-INTERNAL
+		counter packets 0 bytes 0 jump DOCKER-BRIDGE
+	}
+
+	chain DOCKER-BRIDGE {
+	}
+
+	chain DOCKER-CT {
+	}
+
+	chain DOCKER-INTERNAL {
+	}
+
+	chain FORWARD {
+		type filter hook forward priority filter; policy accept;
+		counter packets 0 bytes 0 jump DOCKER-USER
+		counter packets 0 bytes 0 jump DOCKER-FORWARD
+	}
+
+	chain DOCKER-USER {
+	}
+}
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mip netns exec client iptables -S[27mip netns exec client iptables -S
+[?2004l-P INPUT ACCEPT
+-P FORWARD ACCEPT
+-P OUTPUT ACCEPT
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client nft list ruleset[27mip netns exec client nft list ruleset
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mls -l /etc/iptables/ 2>/dev/null; cat /etc/iptables/rules.v4 2>/dev/null[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ls -l /etc/iptables/ 2>/dev/null; cat /etc/iptables/rules.v4 2>/dev/null
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcat /etc/nftables.conf 2>/dev/null[27mcat /etc/nftables.conf 2>/dev/null
+[?2004l#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet filter {
+	chain input {
+		type filter hook input priority filter;
+	}
+	chain forward {
+		type filter hook forward priority filter;
+	}
+	chain output {
+		type filter hook output priority filter;
+	}
+}
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 ns1.novapeak.lab +tries=1 +time=2[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 ns1.novapeak.lab +tries=1 +time=2
+[?2004l;; communications error to 192.168.19.10#53: timed out
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 ns1.novapeak.lab +tries=1 +time=2
+; (1 server found)
+;; global options: +cmd
+;; no servers could be reached
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 ns1.novapeak.lab +tcp[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 ns1.novapeak.lab +tcp
+[?2004l
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 ns1.novapeak.lab +tcp
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 35582
+;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 528fdd439518daa9010000006ad320910d4639a645beea1c (good)
+;; QUESTION SECTION:
+;ns1.novapeak.lab.		IN	A
+
+;; Query time: 0 msec
+;; SERVER: 192.168.19.10#53(192.168.19.10) (TCP)
+;; WHEN: Sat Oct 17 07:15:29 UTC 2026
+;; MSG SIZE  rcvd: 73
+
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tries=1 +time=2[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tries=1 +time=2
+[?2004l;; communications error to 192.168.19.10#53: timed out
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 -x 192.168.19.10 +tries=1 +time=2
+; (1 server found)
+;; global options: +cmd
+;; no servers could be reached
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tcp[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tcp
+[?2004l
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 -x 192.168.19.10 +tcp
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 16833
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: f492a718f5ed8c8a010000006ad320ac0466718a2864fe93 (good)
+;; QUESTION SECTION:
+;10.19.168.192.in-addr.arpa.	IN	PTR
+
+;; ANSWER SECTION:
+10.19.168.192.in-addr.arpa. 3600 IN	PTR	ns1.novapeak.lab.
+
+;; Query time: 0 msec
+;; SERVER: 192.168.19.10#53(192.168.19.10) (TCP)
+;; WHEN: Sat Oct 17 07:15:56 UTC 2026
+;; MSG SIZE  rcvd: 113
+
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcat /etc/default/isc-dhcp-server[27mcat /etc/default/isc-dhcp-server
+[?2004lINTERFACESv4="lan0"
+INTERFACESv6=""
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcat /etc/dhcp/dhcpd.conf [27mcat /etc/dhcp/dhcpd.conf 
+[?2004loption domain-name "novapeak.lab";
+default-lease-time 3600;
+max-lease-time 7200;
+
+subnet 192.168.19.0 netmask 255.255.255.0 {
+	range 192.168.19.104 192.168.19.144;
+	option routers 192.168.19.1;
+	option domain-name-servers 8.8.8.8;
+}
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mdhcpd -t -cf /etc/dhcp/dhcpd.conf[27mdhcpd -t -cf /etc/dhcp/dhcpd.conf
+[?2004lInternet Systems Consortium DHCP Server 4.4.3-P1
+Copyright 2004-2022 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+Config file: /etc/dhcp/dhcpd.conf
+Database file: /var/lib/dhcp/dhcpd.leases
+PID file: /var/run/dhcpd.pid
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7msystemctl status isc-dhcp-server --no-pager[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ systemctl status isc-dhcp-server --no-pager
+[?2004l[0;1;32m●[0m isc-dhcp-server.service - ISC DHCP IPv4 server
+     Loaded: loaded (]8;;file://ubuntu/usr/lib/systemd/system/isc-dhcp-server.service/usr/lib/systemd/system/isc-dhcp-server.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Sat 2026-10-17 07:06:25 UTC; 10min ago
+       Docs: ]8;;man:dhcpd(8)man:dhcpd(8)]8;;
+   Main PID: 2457 (dhcpd)
+      Tasks: 1 (limit: 2237)
+     Memory: 3.8M (peak: 4.0M)
+        CPU: 10ms
+     CGroup: /system.slice/isc-dhcp-server.service
+             └─[0;38;5;245m2457 dhcpd -user dhcpd -group dhcpd -f -4 -pf /run/dhcp-server/dhcpd.pid -cf /e…[0m
+
+Oct 17 07:06:25 ubuntu dhcpd[2457]: Sending on   LPF/lan0/22:c5:ba:ee:85:23/192.168.19.0/24
+Oct 17 07:06:25 ubuntu dhcpd[2457]: Sending on   Socket/fallback/fallback-net
+Oct 17 07:06:25 ubuntu dhcpd[2457]: Server starting service.
+Oct 17 07:07:24 ubuntu dhcpd[2457]: DHCPDISCOVER from 06:05:1c:96:89:7d via lan0
+Oct 17 07:07:25 ubuntu dhcpd[2457]: DHCPOFFER on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+Oct 17 07:07:25 ubuntu dhcpd[2457]: DHCPREQUEST for 192.168.19.104 (192.168.19.10) from …a lan0
+Oct 17 07:07:25 ubuntu dhcpd[2457]: DHCPACK on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+Oct 17 07:07:31 ubuntu dhcpd[2457]: [0;38;5;245mreuse_lease: lease age 6 (secs) under 25% threshold,…19.104[0m
+Oct 17 07:07:31 ubuntu dhcpd[2457]: DHCPREQUEST for 192.168.19.104 from 06:05:1c:96:89:7…a lan0
+Oct 17 07:07:31 ubuntu dhcpd[2457]: DHCPACK on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+Hint: Some lines were ellipsized, use -l to show in full.
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mjournalctl -u isc-dhcp-server --no-pager | tail -20[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ journalctl -u isc-dhcp-server --no-pager | tail -20
+[?2004lOct 17 07:06:25 ubuntu sh[2457]: Config file: /etc/dhcp/dhcpd.conf
+Oct 17 07:06:25 ubuntu sh[2457]: Database file: /var/lib/dhcp/dhcpd.leases
+Oct 17 07:06:25 ubuntu sh[2457]: PID file: /run/dhcp-server/dhcpd.pid
+Oct 17 07:06:25 ubuntu sh[2457]: Wrote 0 leases to leases file.
+Oct 17 07:06:25 ubuntu dhcpd[2457]: PID file: /run/dhcp-server/dhcpd.pid
+Oct 17 07:06:25 ubuntu dhcpd[2457]: Wrote 0 leases to leases file.
+Oct 17 07:06:25 ubuntu dhcpd[2457]: Listening on LPF/lan0/22:c5:ba:ee:85:23/192.168.19.0/24
+Oct 17 07:06:25 ubuntu sh[2457]: Listening on LPF/lan0/22:c5:ba:ee:85:23/192.168.19.0/24
+Oct 17 07:06:25 ubuntu sh[2457]: Sending on   LPF/lan0/22:c5:ba:ee:85:23/192.168.19.0/24
+Oct 17 07:06:25 ubuntu sh[2457]: Sending on   Socket/fallback/fallback-net
+Oct 17 07:06:25 ubuntu dhcpd[2457]: Sending on   LPF/lan0/22:c5:ba:ee:85:23/192.168.19.0/24
+Oct 17 07:06:25 ubuntu dhcpd[2457]: Sending on   Socket/fallback/fallback-net
+Oct 17 07:06:25 ubuntu dhcpd[2457]: Server starting service.
+Oct 17 07:07:24 ubuntu dhcpd[2457]: DHCPDISCOVER from 06:05:1c:96:89:7d via lan0
+Oct 17 07:07:25 ubuntu dhcpd[2457]: DHCPOFFER on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+Oct 17 07:07:25 ubuntu dhcpd[2457]: DHCPREQUEST for 192.168.19.104 (192.168.19.10) from 06:05:1c:96:89:7d via lan0
+Oct 17 07:07:25 ubuntu dhcpd[2457]: DHCPACK on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+Oct 17 07:07:31 ubuntu dhcpd[2457]: reuse_lease: lease age 6 (secs) under 25% threshold, reply with unaltered, existing lease for 192.168.19.104
+Oct 17 07:07:31 ubuntu dhcpd[2457]: DHCPREQUEST for 192.168.19.104 from 06:05:1c:96:89:7d via lan0
+Oct 17 07:07:31 ubuntu dhcpd[2457]: DHCPACK on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 www.novapeak.lab +tries=1 +time=2[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 www.novapeak.lab +tries=1 +time=2
+[?2004l;; communications error to 192.168.19.10#53: timed out
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 www.novapeak.lab +tries=1 +time=2
+; (1 server found)
+;; global options: +cmd
+;; no servers could be reached
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 www.novapeak.lab +tcp[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 www.novapeak.lab +tcp
+[?2004l
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 www.novapeak.lab +tcp
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 49736
+;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: ebfb4a8d18324fd2010000006ad32100caab3da2e3b8faff (good)
+;; QUESTION SECTION:
+;www.novapeak.lab.		IN	A
+
+;; Query time: 1 msec
+;; SERVER: 192.168.19.10#53(192.168.19.10) (TCP)
+;; WHEN: Sat Oct 17 07:17:20 UTC 2026
+;; MSG SIZE  rcvd: 73
+
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7miptables -Z INPUT[27miptables -Z INPUT
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mip netns exec client dig @192.168.19.10 www.novapeak.lab +tries=1 +time=2[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 www.novapeak.lab +tries=1 +time=2
+[?2004l;; communications error to 192.168.19.10#53: timed out
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 www.novapeak.lab +tries=1 +time=2
+; (1 server found)
+;; global options: +cmd
+;; no servers could be reached
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7miptables -L INPUT -n -v --line-numbers[27miptables -L INPUT -n -v --line-numbers
+[?2004lChain INPUT (policy ACCEPT 47 packets, 2666 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        1    85 DROP       17   --  *      *       0.0.0.0/0            0.0.0.0/0            udp dpt:53
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7miptables -D INPUT -p udp --dport 53 -j DROP[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ iptables -D INPUT -p udp --dport 53 -j DROP
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7miptables -L INPUT -n -v --line-numbers[27miptables -L INPUT -n -v --line-numbers
+[?2004lChain INPUT (policy ACCEPT 115 packets, 6687 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7miptables -S INPUT [27miptables -S INPUT 
+[?2004l-P INPUT ACCEPT
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mip netns exec client dig @192.168.19.10 www.novapeak.lab[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 www.novapeak.lab
+[?2004l
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 www.novapeak.lab
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 5059
+;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 2e1c65307147297d010000006ad321748d3e4ea1b7339f1e (good)
+;; QUESTION SECTION:
+;www.novapeak.lab.		IN	A
+
+;; Query time: 0 msec
+;; SERVER: 192.168.19.10#53(192.168.19.10) (UDP)
+;; WHEN: Sat Oct 17 07:19:16 UTC 2026
+;; MSG SIZE  rcvd: 73
+
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 -x 192.168.19.10[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 -x 192.168.19.10
+[?2004l
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 -x 192.168.19.10
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 41524
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 065a1234937dc133010000006ad3217e2033f71d762c9c6a (good)
+;; QUESTION SECTION:
+;10.19.168.192.in-addr.arpa.	IN	PTR
+
+;; ANSWER SECTION:
+10.19.168.192.in-addr.arpa. 3600 IN	PTR	ns1.novapeak.lab.
+
+;; Query time: 0 msec
+;; SERVER: 192.168.19.10#53(192.168.19.10) (UDP)
+;; WHEN: Sat Oct 17 07:19:26 UTC 2026
+;; MSG SIZE  rcvd: 113
+
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 www.novapeak.lab[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 www.novapeak.lab
+[?2004l
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 www.novapeak.lab
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 20885
+;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: d04215c6a6611240010000006ad32198a26697563e3e099c (good)
+;; QUESTION SECTION:
+;www.novapeak.lab.		IN	A
+
+;; Query time: 0 msec
+;; SERVER: 192.168.19.10#53(192.168.19.10) (UDP)
+;; WHEN: Sat Oct 17 07:19:52 UTC 2026
+;; MSG SIZE  rcvd: 73
+
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 -x 192.168.19.10[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 -x 192.168.19.10
+[?2004l
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 -x 192.168.19.10
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 15675
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 2e81e4b74c921ccf010000006ad321a44b845e588fa93790 (good)
+;; QUESTION SECTION:
+;10.19.168.192.in-addr.arpa.	IN	PTR
+
+;; ANSWER SECTION:
+10.19.168.192.in-addr.arpa. 3600 IN	PTR	ns1.novapeak.lab.
+
+;; Query time: 0 msec
+;; SERVER: 192.168.19.10#53(192.168.19.10) (UDP)
+;; WHEN: Sat Oct 17 07:20:04 UTC 2026
+;; MSG SIZE  rcvd: 113
+
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnamed-checkconf -z [27mnamed-checkconf -z 
+[?2004lzone novapeak.lab/IN: loading from master file /etc/bind/db.MISSING failed: file not found
+zone novapeak.lab/IN: not loaded due to errors.
+_default/novapeak.lab/IN: file not found
+zone 19.168.192.in-addr.arpa/IN: loaded serial 2024010101
+zone localhost/IN: loaded serial 2
+zone 127.in-addr.arpa/IN: loaded serial 1
+zone 0.in-addr.arpa/IN: loaded serial 1
+zone 255.in-addr.arpa/IN: loaded serial 1
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mgrep -A3 'zone "novapeak.lab"' /etc/bind/named.conf.local[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ grep -A3 'zone "novapeak.lab"' /etc/bind/named.conf.local
+[?2004l[01;31m[Kzone "novapeak.lab"[m[K {
+	type master;
+	file "/etc/bind/db.MISSING";
+};
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mls -l /etc/bind/db.MISSING [27mls -l /etc/bind/db.MISSING 
+[?2004lls: cannot access '/etc/bind/db.MISSING': No such file or directory
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mls -l /etc/bind/db.novapeak.lab[27mls -l /etc/bind/db.novapeak.lab
+[?2004l-rw-r--r-- 1 bind bind 212 Oct 17 07:06 /etc/bind/db.novapeak.lab
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mjournalctl -u named --no-pager | grep -i missing | tail -5[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ journalctl -u named --no-pager | grep -i missing | tail -5
+[?2004lOct 17 07:06:25 ubuntu named[2452]: zone novapeak.lab/IN: loading from master file /etc/bind/db.MISSING failed: file not found
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcp /etc/bind/named.conf.local /root/named.conf.local.bak[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ cp /etc/bind/named.conf.local /root/named.conf.local.bak
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnano /etc/bind/named.conf.local[27mnano /etc/bind/named.conf.local
+[?2004l[?2004h[?1049h[22;0;0t[1;22r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[20;41H(B[0;7m[ Reading... ](B[m[20;40H(B[0;7m[ Read 9 lines ](B[m[H(B[0;7m  GNU nano 7.2 [22b/etc/bind/named.conf.local [30b [1;94H(B[m[21d(B[0;7m^G(B[m Help[21;16H(B[0;7m^O(B[m Write Out   (B[0;7m^W(B[m Where Is    (B[0;7m^K(B[m Cut[21;61H(B[0;7m^T(B[m Execute     (B[0;7m^C(B[m Location[22d(B[0;7m^X(B[m Exit[22;16H(B[0;7m^R(B[m Read File   (B[0;7m^\(B[m Replace     (B[0;7m^U(B[m Paste[61G(B[0;7m^J(B[m Justify     (B[0;7m^/(B[m Go To Line[2dzone "novapeak.lab" {[3;8H[38;5;208m[1K [39m(B[mtype master;[4;8H[38;5;208m[1K [39m(B[mfile "/etc/bind/db.MISSING";[5d};[7dzone "19.168.192.in-addr.arpa" {[8;8H[38;5;208m[1K [39m(B[mtype master;[9;8H[38;5;208m[1K [39m(B[mfile "/etc/bind/db.novapeak.lab.rev";[10d};[2d[?12l[?25h[?25l[?12l[?25h[3d[?25l[?12l[?25h[4d[?25l[?12l[?25h[4;9H[?25l[?12l[?25hf[?25l[?12l[?25hi[?25l[?12l[?25hl[?25l[?12l[?25he[?25l[?12l[?25h [?25l[?12l[?25h"[?25l[?12l[?25h/[?25l[?12l[?25he[?25l[?12l[?25ht[?25l[?12l[?25hc[?25l[?12l[?25h/[?25l[?12l[?25hb[?25l[?12l[?25hi[?25l[?12l[?25hn[?25l[?12l[?25hd[?25l[?12l[?25h/[?25l[20d[K[?12l[?25h[4;26H[?25l[?12l[?25hb[?25l[?12l[?25h.[?25l[?12l[?25hM[?25l[?12l[?25hI[?25l[?12l[?25hS[?25l[?12l[?25hS[?25l[?12l[?25hI[?25l[?12l[?25hN[?25l[?12l[?25hG[?25l[1;65H(B[0;7m*[94G(B[m[?12l[?25h[4;34H";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25hS";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l[?12l[?25h";[K[?25l/etc/bind/db.novapeak.lab";[?12l[?25h[?25l[21;16H [7b(B[0;7mM-D(B[m DOS Format [8b(B[0;7mM-A(B[m Append [12b(B[0;7mM-B(B[m Backup File[K[22;2H(B[0;7mC(B[m Cancel[16G [7b(B[0;7mM-M(B[m Mac Format [8b(B[0;7mM-P(B[m Prepend [11b(B[0;7m^T(B[m Browse[K[20d(B[0;7mFile Name to Write: /etc/bind/named.conf.local [47b [20;47H(B[m[?12l[?25h[?25l[40G[1K (B[0;7m[ Writing... ](B[m[K[1;65H(B[0;7m [94G(B[m[20;40H(B[0;7m[ Wrote 9 lines ](B[m[21;16H(B[0;7m^O(B[m Write Out   (B[0;7m^W(B[m Where Is    (B[0;7m^K(B[m Cut [8b(B[0;7m^T(B[m Execute     (B[0;7m^C(B[m Location[22;2H(B[0;7mX(B[m Exit  [16G(B[0;7m^R(B[m Read File   (B[0;7m^\(B[m Replace     (B[0;7m^U(B[m Paste [6b(B[0;7m^J(B[m Justify     (B[0;7m^/(B[m Go To Line[?12l[?25h[4;40H[?25l[20d[J[22d[?12l[?25h[22;1H[?1049l[23;0;0t[?1l>[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [Kcat [7m/etc/bind/named.conf.local[27m/etc/bind/named.conf.local
+[?2004lzone "novapeak.lab" {
+	type master;
+	file "/etc/bind/db.novapeak.lab";
+};
+
+zone "19.168.192.in-addr.arpa" {
+	type master;
+	file "/etc/bind/db.novapeak.lab.rev";
+};
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnamed-checkconf -z[27mnamed-checkconf -z
+[?2004lzone novapeak.lab/IN: loaded serial 2024010101
+zone 19.168.192.in-addr.arpa/IN: loaded serial 2024010101
+zone localhost/IN: loaded serial 2
+zone 127.in-addr.arpa/IN: loaded serial 1
+zone 0.in-addr.arpa/IN: loaded serial 1
+zone 255.in-addr.arpa/IN: loaded serial 1
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7msystemctl restart named[27msystemctl restart named
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mjournalctl -u named -n 20 --no-pager | grep novapeak[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ journalctl -u named -n 20 --no-pager | grep novapeak
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 novapeak.lab SOA[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 novapeak.lab SOA
+[?2004l
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @192.168.19.10 novapeak.lab SOA
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 22316
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 2d5d6a1cea90a956010000006ad3223b18c2b805edb2aa1a (good)
+;; QUESTION SECTION:
+;novapeak.lab.			IN	SOA
+
+;; ANSWER SECTION:
+novapeak.lab.		3600	IN	SOA	ns1.novapeak.lab. admin.novapeak.lab. 2024010101 3600 1800 604800 3600
+
+;; Query time: 0 msec
+;; SERVER: 192.168.19.10#53(192.168.19.10) (UDP)
+;; WHEN: Sat Oct 17 07:22:35 UTC 2026
+;; MSG SIZE  rcvd: 115
+
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 www.novapeak.lab +short[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 www.novapeak.lab +short
+[?2004l192.168.19.20
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mfor h in ns1 www mail api; do echo -n "$h: "; ip netns exec client dig @192.168.[27m[7m1[27m[7m19.10 $h.novapeak.lab +short; done[27m[Afor h in ns1 www mail api; do echo -n "$h: "; ip netns exec client dig @192.168.19.10 $h.novapeak.lab +short; done
+[?2004lns1: 192.168.19.10
+www: 192.168.19.20
+mail: 192.168.19.30
+api: 192.168.19.1
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mpython3 /root/grading/params.py lab01 | grep api[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ python3 /root/grading/params.py lab01 | grep api
+[?2004l    [01;31m[Kapi[m[K.novapeak.lab        -> 192.168.19.40
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mgrep api /etc/bind/db.novapeak.lab[27mgrep api /etc/bind/db.novapeak.lab
+[?2004l[01;31m[Kapi[m[K IN A 192.168.19.1
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mgrep '^40' /etc/bind/db.novapeak.lab.rev[27mgrep '^40' /etc/bind/db.novapeak.lab.rev
+[?2004l[01;31m[K40[m[K IN PTR api.novapeak.lab.
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 -x 192.168.19.1 +short[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 -x 192.168.19.1 +short
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcp /etc/bind/db.novapeak.lab /root/db.novapeak.lab.bak[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ cp /etc/bind/db.novapeak.lab /root/db.novapeak.lab.bak
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnano /etc/bind/db.novapeak.lab[27mnano /etc/bind/db.novapeak.lab
+[?2004l[?2004h[?1049h[22;0;0t[1;22r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[20;41H(B[0;7m[ Reading... ](B[m[20;40H(B[0;7m[ Read 7 lines ](B[m[H(B[0;7m  GNU nano 7.2 [22b/etc/bind/db.novapeak.lab [31b [1;94H(B[m[21d(B[0;7m^G(B[m Help[21;16H(B[0;7m^O(B[m Write Out   (B[0;7m^W(B[m Where Is    (B[0;7m^K(B[m Cut[21;61H(B[0;7m^T(B[m Execute     (B[0;7m^C(B[m Location[22d(B[0;7m^X(B[m Exit[22;16H(B[0;7m^R(B[m Read File   (B[0;7m^\(B[m Replace     (B[0;7m^U(B[m Paste[61G(B[0;7m^J(B[m Justify     (B[0;7m^/(B[m Go To Line[2d$TTL 3600[3d@ IN SOA ns1.novapeak.lab. admin.novapeak.lab. ( 2024010101 3600 1800 604800 3600 )[4d@ IN NS ns1.novapeak.lab.[5dns1 IN A 192.168.19.10[6dwww IN A 192.168.19.20[7dmail IN A 192.168.19.30[8dapi IN A 192.168.19.1[2d[?12l[?25h[?25l[?12l[?25h[3d[?25l[?12l[?25h[4d[?25l[?12l[?25h[5d[?25l[?12l[?25h[6d[?25l[?12l[?25h[7d[?25l[?12l[?25h[8d[?25l[?12l[?25ha[?25l[?12l[?25hp[?25l[?12l[?25hi[?25l[?12l[?25h [?25l[?12l[?25hI[?25l[?12l[?25hN[?25l[?12l[?25h [?25l[?12l[?25hA[?25l[?12l[?25h [?25l[?12l[?25h1[?25l[?12l[?25h9[?25l[?12l[?25h2[?25l[?12l[?25h.[?25l[20d[K[?12l[?25h[8;15H[?25l[?12l[?25h6[?25l[?12l[?25h8[?25l[?12l[?25h.[?25l[?12l[?25h1[?25l[?12l[?25h9[?25l[?12l[?25h.[?25l[?12l[?25h1[?25l[1;64H(B[0;7m*[94G(B[m[?12l[?25h[8;21H [?25l40[?12l[?25h[?25l[?12l[?25h[A[?25l[?12l[?25h[A[?25l[?12l[?25h[A[?25l[?12l[?25h[A[?25l[?12l[?25h[A[?25l[?12l[?25hl[?25l[?12l[?25ha[?25l[?12l[?25hb[?25l[?12l[?25h.[?25l[?12l[?25h [?25l[?12l[?25ha[?25l[?12l[?25hd[?25l[?12l[?25hm[?25l[?12l[?25hi[?25l[?12l[?25hn[?25l[?12l[?25h.[?25l[?12l[?25hn[?25l[?12l[?25ho[?25l[?12l[?25hv[?25l[?12l[?25ha[?25l[?12l[?25hp[?25l[?12l[?25he[?25l[?12l[?25ha[?25l[?12l[?25hk[?25l[?12l[?25h.[?25l[?12l[?25hl[?25l[?12l[?25ha[?25l[?12l[?25hb[?25l[?12l[?25h.[?25l[?12l[?25h [?25l[?12l[?25h([?25l[?12l[?25h [?25l[?12l[?25h2[?25l[?12l[?25h0[?25l[?12l[?25h2[?25l[?12l[?25h4[?25l[?12l[?25h0[?25l[?12l[?25h1[?25l[?12l[?25h0[?25l[?12l[?25h1[?25l[?12l[?25h0[?25l[?12l[?25h1[?25l[?12l[?25h[1P[?25l[?12l[?25h[1P[?25l[?12l[?25h[1P[?25l[?12l[?25h[1P[?25l[?12l[?25h[1P[?25l[?12l[?25h[1P[?25l[?12l[?25h[1P[?25l[?12l[?25h[1P[?25l[?12l[?25h[1P[?25l[?12l[?25h[1P[?25l2024010102 3600 1800 604800 3600 )[3;60H[?12l[?25h[?25l[21;16H [7b(B[0;7mM-D(B[m DOS Format [8b(B[0;7mM-A(B[m Append [12b(B[0;7mM-B(B[m Backup File[K[22;2H(B[0;7mC(B[m Cancel[16G [7b(B[0;7mM-M(B[m Mac Format [8b(B[0;7mM-P(B[m Prepend [11b(B[0;7m^T(B[m Browse[K[20d(B[0;7mFile Name to Write: /etc/bind/db.novapeak.lab [48b [20;46H(B[m[?12l[?25h[?25l[40G[1K (B[0;7m[ Writing... ](B[m[K[1;64H(B[0;7m [94G(B[m[20;40H(B[0;7m[ Wrote 7 lines ](B[m[21;16H(B[0;7m^O(B[m Write Out   (B[0;7m^W(B[m Where Is    (B[0;7m^K(B[m Cut [8b(B[0;7m^T(B[m Execute     (B[0;7m^C(B[m Location[22;2H(B[0;7mX(B[m Exit  [16G(B[0;7m^R(B[m Read File   (B[0;7m^\(B[m Replace     (B[0;7m^U(B[m Paste [6b(B[0;7m^J(B[m Justify     (B[0;7m^/(B[m Go To Line[?12l[?25h[3;60H[?25l[20d[J[22d[?12l[?25h[22;1H[?1049l[23;0;0t[?1l>[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnamed-checkzone novapeak.lab /etc/bind/db.novapeak.lab[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ named-checkzone novapeak.lab /etc/bind/db.novapeak.lab
+[?2004lzone novapeak.lab/IN: loaded serial 2024010102
+OK
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mchown bind:bind /etc/bind/db.novapeak.lab[27mchown bind:bind /etc/bind/db.novapeak.lab
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7msystemctl restart named[27msystemctl restart named
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mfor h in ns1 www mail api; do echo -n "$h: "; ip netns exec client dig @192.168.[27m[7m1[27m[7m19.10 $h.novapeak.lab +short; done[27m[Afor h in ns1 www mail api; do echo -n "$h: "; ip netns exec client dig @192.168.19.10 $h.novapeak.lab +short; done
+[?2004lns1: 192.168.19.10
+www: 192.168.19.20
+mail: 192.168.19.30
+api: 192.168.19.40
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcat /etc/bind/db.novapeak.lab.rev[27mcat /etc/bind/db.novapeak.lab.rev
+[?2004l$TTL 3600
+@ IN SOA ns1.novapeak.lab. admin.novapeak.lab. ( 2024010101 3600 1800 604800 3600 )
+@ IN NS ns1.novapeak.lab.
+10 IN PTR ns1.novapeak.lab.
+20 IN PTR www.novapeak.lab.
+30 IN PTR mail.novapeak.lab.
+40 IN PTR api.novapeak.lab.
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 -x 192.168.19.10 +short[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +short
+[?2004lns1.novapeak.lab.
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dhcpcd -U cli0 | grep domain_name_servers[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dhcpcd -U cli0 | grep domain_name_servers
+[?2004l[01;31m[Kdomain_name_servers[m[K=8.8.8.8
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @8.8.8.8 www.novapeak.lab +tries=1 +time=2[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @8.8.8.8 www.novapeak.lab +tries=1 +time=2
+[?2004l;; communications error to 8.8.8.8#53: timed out
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.8-Ubuntu <<>> @8.8.8.8 www.novapeak.lab +tries=1 +time=2
+; (1 server found)
+;; global options: +cmd
+;; no servers could be reached
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mpython3 /root/grading/check_lab.py --group lab01 --phase build[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ python3 /root/grading/check_lab.py --group lab01 --phase build
+[?2004l  [   2/2 ] C4   named-checkconf -z clean; named-checkzone clean
+  [   2/2 ] C5   dhcpd -t clean; service running
+  [   2/2 ] C1   named is authoritative for novapeak.lab and reachable from the client.
+  [ 3.0/3 ] C2   all four A records correct
+  [   2/2 ] C3   reverse lookup of 192.168.19.10 returns ns1.
+  [   3/3 ] C6   client obtained a lease: 192.168.19.104
+  [ 2.0/2 ] C7   pool+netmask correct
+  [   2/2 ] C8   gateway advertised correctly
+  [   0/3 ] C9   DHCP advertises 8.8.8.8, expected the company DNS 192.168.19.10 -- this is the integration the whole project is about
+  [   1/1 ] C10  company domain advertised
+  [   0/3 ] C11  using the leased resolver 8.8.8.8, www did not resolve to 192.168.19.20 (got nothing). If the leased resolver is a public one, that is the integration bug.
+  --------------------------------------------------
+  TOTAL: 19.0 / 25
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mgrep -n domain-name-servers /etc/dhcp/dhcpd.conf[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ grep -n domain-name-servers /etc/dhcp/dhcpd.conf
+[?2004l[32m[K8[m[K[36m[K:[m[K	option [01;31m[Kdomain-name-servers[m[K 8.8.8.8;
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mcp /etc/dhcp/dhcpd.conf /root/dhcpd.conf.bak[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ cp /etc/dhcp/dhcpd.conf /root/dhcpd.conf.bak
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mnano /etc/dhcp/dhcpd.conf[27mnano /etc/dhcp/dhcpd.conf
+[?2004l[?2004h[?1049h[22;0;0t[1;22r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[20;41H(B[0;7m[ Reading... ](B[m[20;40H(B[0;7m[ Read 9 lines ](B[m[H(B[0;7m  GNU nano 7.2 [25b/etc/dhcp/dhcpd.conf [33b [1;94H(B[m[21d(B[0;7m^G(B[m Help[21;16H(B[0;7m^O(B[m Write Out   (B[0;7m^W(B[m Where Is    (B[0;7m^K(B[m Cut[21;61H(B[0;7m^T(B[m Execute     (B[0;7m^C(B[m Location[22d(B[0;7m^X(B[m Exit[22;16H(B[0;7m^R(B[m Read File   (B[0;7m^\(B[m Replace     (B[0;7m^U(B[m Paste[61G(B[0;7m^J(B[m Justify     (B[0;7m^/(B[m Go To Line[2doption domain-name "novapeak.lab";[3ddefault-lease-time 3600;[4dmax-lease-time 7200;[6dsubnet 192.168.19.0 netmask 255.255.255.0 {[7;8H[38;5;208m[1K [39m(B[mrange 192.168.19.104 192.168.19.144;[8;8H[38;5;208m[1K [39m(B[moption routers 192.168.19.1;[9;8H[38;5;208m[1K [39m(B[moption domain-name-servers 8.8.8.8;[10d}[2d[?12l[?25h[?25l[?12l[?25h[3d[?25l[?12l[?25h[4d[?25l[?12l[?25h[5d[?25l[?12l[?25h[6d[?25l[?12l[?25h[7d[?25l[?12l[?25h[8d[?25l[?12l[?25h[9d[?25l[?12l[?25h[9;9H[?25l[?12l[?25ho[?25l[?12l[?25hp[?25l[?12l[?25ht[?25l[?12l[?25hi[?25l[?12l[?25ho[?25l[?12l[?25hn[?25l[?12l[?25h [?25l[?12l[?25hd[?25l[?12l[?25ho[?25l[?12l[?25hm[?25l[?12l[?25ha[?25l[20d[K[?12l[?25h[9;21H[?25l[?12l[?25hn[?25l[?12l[?25h-na[?25l[?12l[?25hm[?25l[?12l[?25he[?25l[?12l[?25h-[?25l[?12l[?25hs[?25l[?12l[?25herve[?25l[?12l[?25hr[?25l[?12l[?25hs[?25l[?12l[?25h [?25l[?12l[?25h8[?25l[?12l[?25h.[?25l[?12l[?25h8[?25l[?12l[?25h.[?25l[?12l[?25h8[?25l[?12l[?25h.[?25l[?12l[?25h8[?25l[1;62H(B[0;7m*[94G(B[m[?12l[?25h[9;42H;[K[?25l[?12l[?25h;[K[?25l[?12l[?25h;[K[?25l[?12l[?25h;[K[?25l[?12l[?25h;[K[?25l[?12l[?25h;[K[?25l[?12l[?25h;[K[?25l192.168.19.10;[?12l[?25h[?25l[21;16H [7b(B[0;7mM-D(B[m DOS Format [8b(B[0;7mM-A(B[m Append [12b(B[0;7mM-B(B[m Backup File[K[22;2H(B[0;7mC(B[m Cancel[16G [7b(B[0;7mM-M(B[m Mac Format [8b(B[0;7mM-P(B[m Prepend [11b(B[0;7m^T(B[m Browse[K[20d(B[0;7mFile Name to Write: /etc/dhcp/dhcpd.conf [53b [20;41H(B[m[?12l[?25h[?25l[1K (B[0;7m[ Writing... ](B[m[K[1;62H(B[0;7m [94G(B[m[20;40H(B[0;7m[ Wrote 9 lines ](B[m[21;16H(B[0;7m^O(B[m Write Out   (B[0;7m^W(B[m Where Is    (B[0;7m^K(B[m Cut [8b(B[0;7m^T(B[m Execute     (B[0;7m^C(B[m Location[22;2H(B[0;7mX(B[m Exit  [16G(B[0;7m^R(B[m Read File   (B[0;7m^\(B[m Replace     (B[0;7m^U(B[m Paste [6b(B[0;7m^J(B[m Justify     (B[0;7m^/(B[m Go To Line[?12l[?25h[9;49H[?25l[20d[J[22d[?12l[?25h[22;1H[?1049l[23;0;0t[?1l>[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mdhcpd -t -cf /etc/dhcp/dhcpd.conf[27mdhcpd -t -cf /etc/dhcp/dhcpd.conf
+[?2004lInternet Systems Consortium DHCP Server 4.4.3-P1
+Copyright 2004-2022 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+Config file: /etc/dhcp/dhcpd.conf
+Database file: /var/lib/dhcp/dhcpd.leases
+PID file: /var/run/dhcpd.pid
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7msystemctl restart isc-dhcp-server[27msystemctl restart isc-dhcp-server
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7msystemctl status isc-dhcp-server --no-pager[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ systemctl status isc-dhcp-server --no-pager
+[?2004l[0;1;32m●[0m isc-dhcp-server.service - ISC DHCP IPv4 server
+     Loaded: loaded (]8;;file://ubuntu/usr/lib/systemd/system/isc-dhcp-server.service/usr/lib/systemd/system/isc-dhcp-server.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Sat 2026-10-17 07:29:02 UTC; 8s ago
+       Docs: ]8;;man:dhcpd(8)man:dhcpd(8)]8;;
+   Main PID: 3449 (dhcpd)
+      Tasks: 1 (limit: 2237)
+     Memory: 3.7M (peak: 4.0M)
+        CPU: 6ms
+     CGroup: /system.slice/isc-dhcp-server.service
+             └─[0;38;5;245m3449 dhcpd -user dhcpd -group dhcpd -f -4 -pf /run/dhcp-server/dhcpd.pid -cf /e…[0m
+
+Oct 17 07:29:02 ubuntu sh[3449]: Wrote 1 leases to leases file.
+Oct 17 07:29:02 ubuntu dhcpd[3449]: PID file: /run/dhcp-server/dhcpd.pid
+Oct 17 07:29:02 ubuntu dhcpd[3449]: Wrote 1 leases to leases file.
+Oct 17 07:29:02 ubuntu dhcpd[3449]: Listening on LPF/lan0/22:c5:ba:ee:85:23/192.168.19.0/24
+Oct 17 07:29:02 ubuntu sh[3449]: Listening on LPF/lan0/22:c5:ba:ee:85:23/192.168.19.0/24
+Oct 17 07:29:02 ubuntu sh[3449]: Sending on   LPF/lan0/22:c5:ba:ee:85:23/192.168.19.0/24
+Oct 17 07:29:02 ubuntu sh[3449]: Sending on   Socket/fallback/fallback-net
+Oct 17 07:29:02 ubuntu dhcpd[3449]: Sending on   LPF/lan0/22:c5:ba:ee:85:23/192.168.19.0/24
+Oct 17 07:29:02 ubuntu dhcpd[3449]: Sending on   Socket/fallback/fallback-net
+Oct 17 07:29:02 ubuntu dhcpd[3449]: Server starting service.
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dhcpcd -k cli0[27mip netns exec client dhcpcd -k cli0
+[?2004lsending signal ALRM to pid 3349
+waiting for pid 3349 to exit
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dhcpcd -b cli0[27mip netns exec client dhcpcd -b cli0
+[?2004ldhcpcd-10.0.6 starting
+network namespace: client
+DUID 00:01:00:01:32:65:da:39:7e:21:af:9b:c8:23
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7msleep 3[27msleep 3
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [7mip netns exec client dhcpcd -U cli0 | grep -E 'ip_address|routers|domain_name'[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dhcpcd -U cli0 | grep -E 'ip_address|routers|domain_name'
+[?2004l[01;31m[Kip_address[m[K=192.168.19.104
+[01;31m[Krouters[m[K=192.168.19.1
+[01;31m[Kdomain_name[m[K_servers=192.168.19.10
+[01;31m[Kdomain_name[m[K=novapeak.lab
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mjournalctl -u isc-dhcp-server -n 5 --no-pager[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ journalctl -u isc-dhcp-server -n 5 --no-pager
+[?2004lOct 17 07:29:23 ubuntu dhcpd[3449]: DHCPRELEASE of 192.168.19.104 from 06:05:1c:96:89:7d via lan0 (found)
+Oct 17 07:29:34 ubuntu dhcpd[3449]: DHCPDISCOVER from 06:05:1c:96:89:7d via lan0
+Oct 17 07:29:35 ubuntu dhcpd[3449]: DHCPOFFER on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+Oct 17 07:29:35 ubuntu dhcpd[3449]: DHCPREQUEST for 192.168.19.104 (192.168.19.10) from 06:05:1c:96:89:7d via lan0
+Oct 17 07:29:35 ubuntu dhcpd[3449]: DHCPACK on 192.168.19.104 to 06:05:1c:96:89:7d via lan0
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mip netns exec client dig @192.168.19.10 www.novapeak.lab +short[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ ip netns exec client dig @192.168.19.10 www.novapeak.lab +short
+[?2004l192.168.19.20
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7miptables -S | grep -- '--dport 53'[27miptables -S | grep -- '--dport 53'
+[?2004l[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mpython3 /root/grading/check_lab.py --group lab01 --phase build[27m[01;32mroot@ubuntu[00m:[01;34m~[00m$ python3 /root/grading/check_lab.py --group lab01 --phase build
+[?2004l  [   2/2 ] C4   named-checkconf -z clean; named-checkzone clean
+  [   2/2 ] C5   dhcpd -t clean; service running
+  [   2/2 ] C1   named is authoritative for novapeak.lab and reachable from the client.
+  [ 3.0/3 ] C2   all four A records correct
+  [   2/2 ] C3   reverse lookup of 192.168.19.10 returns ns1.
+  [   3/3 ] C6   client obtained a lease: 192.168.19.104
+  [ 2.0/2 ] C7   pool+netmask correct
+  [   2/2 ] C8   gateway advertised correctly
+  [   3/3 ] C9   DHCP advertises the company DNS (192.168.19.10)
+  [   1/1 ] C10  company domain advertised
+  [   3/3 ] C11  client resolves www via the leased resolver
+  --------------------------------------------------
+  TOTAL: 25.0 / 25
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mpython3 /root/grading/check_lab.py --group lab01 --phase build | tee /root/check[27m[7me[27m[7mer_result.txt[27m[A$ python3 /root/grading/check_lab.py --group lab01 --phase build | tee /root/checker_result.txt
+[?2004l  [   2/2 ] C4   named-checkconf -z clean; named-checkzone clean
+  [   2/2 ] C5   dhcpd -t clean; service running
+  [   2/2 ] C1   named is authoritative for novapeak.lab and reachable from the client.
+  [ 3.0/3 ] C2   all four A records correct
+  [   2/2 ] C3   reverse lookup of 192.168.19.10 returns ns1.
+  [   3/3 ] C6   client obtained a lease: 192.168.19.104
+  [ 2.0/2 ] C7   pool+netmask correct
+  [   2/2 ] C8   gateway advertised correctly
+  [   3/3 ] C9   DHCP advertises the company DNS (192.168.19.10)
+  [   1/1 ] C10  company domain advertised
+  [   3/3 ] C11  client resolves www via the leased resolver
+  --------------------------------------------------
+  TOTAL: 25.0 / 25
+[?2004h[01;32mroot@ubuntu[00m:[01;34m~[00m$ [K[7mexit[27mexit
+[?2004lexit
+
+Script done on 2026-10-17 07:31:09+00:00 [COMMAND_EXIT_CODE="0"]
