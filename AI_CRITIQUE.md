@@ -57,3 +57,62 @@ python3 /root/grading/check_lab.py --group lab01 --phase build
 - Checks C9 and C11 identified a DHCP DNS-server configuration problem: the client was being given `8.8.8.8` instead of `192.168.19.10`.
 
 These results showed that the problem involved multiple configuration areas.
+
+### 3. Enumerate Network Connectivity
+
+**Commands used:**
+
+```bash
+ip -br addr
+ip route
+ip netns list
+ip netns exec client ip -br addr
+ip netns exec client ip route
+ip netns exec client ping -c 3 192.168.19.10
+```
+
+**Evidence collected:**
+
+```text
+3 packets transmitted, 3 received, 0% packet loss
+```
+
+**Finding:** The client could reach the DNS server at the network layer. A complete network-connectivity failure was therefore less likely, so we continued investigating DNS service reachability and configuration.
+
+### 4. Enumerate the DNS Service and Compare UDP with TCP
+
+**Commands used:**
+
+```bash
+systemctl status named --no-pager
+
+ss -ulntp | grep ':53'
+
+ip netns exec client dig @192.168.19.10 ns1.novapeak.lab +tries=1 +time=2
+
+ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tries=1 +time=2
+
+ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tcp
+```
+
+**Evidence collected:**
+
+The UDP query timed out:
+
+```text
+;; communications error to 192.168.19.10#53: timed out
+;; no servers could be reached
+```
+
+The reverse lookup over TCP returned an authoritative answer:
+
+```text
+status: NOERROR
+flags: qr aa rd
+ANSWER: 1
+
+10.19.168.192.in-addr.arpa. 3600 IN PTR ns1.novapeak.lab.
+SERVER: 192.168.19.10#53 (TCP)
+```
+
+**Finding:** UDP DNS requests timed out while the TCP reverse lookup succeeded. This indicated that the DNS service was responding over TCP and made UDP/53 filtering a strong possibility.
