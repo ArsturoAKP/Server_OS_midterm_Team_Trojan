@@ -557,3 +557,14 @@ We learned to treat AI suggestions as hypotheses rather than facts. Our troubles
 Our final result was **25/25**. This experience showed us that reliable troubleshooting depends on technical understanding, evidence, and verification—not simply accepting an AI-generated answer.
 
 ---
+
+## Evidence Files
+
+The main supporting evidence for this critique is:
+
+- `session.log` — recorded terminal commands and outputs.
+- `INCIDENT_LOG.md` — the investigation, proof, fixes, and confirmation for each fault.
+- `checker_result.txt` — the final grading checker result.
+- `fixed-configs/` — the repaired configuration files.
+
+Before submission, verify that the quoted command output matches the actual recorded session and replace all AI comparison placeholders with the actual responses from the tools used.
