@@ -1,8 +1,11 @@
 # Server OS Midterm: Lab 01 (novapeak)
 
 **Group Name:** Trojan
+
 **Company / domain:** novapeak / novapeak.lab
+
 **Checker group id:** lab01
+
 **Date:** 18 October 2026
 
 ## Members

@@ -1,8 +1,11 @@
 # Server OS Midterm: Lab 01 (novapeak)
 
 **Group Name:** Trojan
+
 **Company / domain:** novapeak / novapeak.lab
+
 **Checker group id:** lab01
+
 **Date:** 18 October 2026
 
 ## Members
@@ -457,38 +460,6 @@ The configuration and client lease showed `8.8.8.8`, while the required internal
 **Evaluation**
 
 Both simulated suggestions were useful because they checked the configuration and the actual client result. The checker provided additional confirmation that the DHCP setting failed the lab requirements.
-
-### 4. Wrong or Potentially Misleading AI Suggestion
-
-A useful way to test AI reliability is to consider a plausible but premature troubleshooting recommendation.
-
-**AI tool:** Hypothetical AI response — not an actual recorded response.
-
-**Suggestion:**
-
-> Since the client cannot resolve DNS names, change BIND's `listen-on` and `allow-query` settings to allow all interfaces and clients.
-
-**Why we questioned it:**
-
-The initial symptom did not prove that BIND was refusing client queries. The server responded to a TCP reverse lookup, and the network-level ping succeeded. Broadening BIND's listening and query permissions without checking the existing configuration could introduce unnecessary changes and would not directly explain a firewall rule dropping UDP port 53.
-
-**How we verified it:**
-
-```bash
-named-checkconf -p
-
-ss -ulntp | grep ':53'
-
-ip netns exec client dig @192.168.19.10 -x 192.168.19.10 +tcp
-
-iptables -L INPUT -n -v --line-numbers
-```
-
-The TCP query succeeded, and the firewall DROP counter increased after the UDP test. These findings supported investigating the firewall before changing BIND's interface and query permissions.
-
-**Conclusion:**
-
-The suggestion was premature rather than necessarily incorrect in every possible situation. BIND listening and query permissions can cause DNS problems in other environments, but our evidence pointed to UDP filtering. We learned that a technically possible solution is not automatically the correct solution for the fault being investigated.
 
 ### 4. Wrong or Misleading AI Suggestions
 
