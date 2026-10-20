@@ -1,5 +1,9 @@
 # Server OS Midterm: Lab 01 (novapeak)
 
+**Class Name:** Server OS (Tuesday Morning)
+
+**Class Code:** 192-442(Group 02)
+
 **Group Name:** Trojan
 
 **Company / domain:** novapeak / novapeak.lab
